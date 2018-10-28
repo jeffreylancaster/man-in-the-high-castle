@@ -1,0 +1,74 @@
+{
+	"Obergruppenführer John Smith": {
+		"accepted": "Obergruppenführer John Smith",
+		"aliases":[
+			"John Smith"
+		]
+	},
+	"Chief Inspector Takeshi Kido": {
+		"accepted": "Chief Inspector Takeshi Kido",
+		"aliases":[
+			"Inspector Kido"
+		]
+	},
+	"Heinrich Himmler": {
+		"accepted": "Heinrich Himmler",
+		"aliases": [
+			"Himmler"
+		]
+	},
+	"Ed McCarthy": {
+		"accepted": "Ed McCarthy",
+		"aliases": [
+			"Edward McCarthy"
+		]
+	},
+	"Nicole Dörmer": {
+		"accepted": "Nicole Dörmer",
+		"aliases": [
+			"Nicole Becker"
+		]
+	},
+	"Hawthorne Abendsen": {
+		"accepted": "Hawthorne Abendsen",
+		"aliases": [
+			"Abendsen"
+		]
+	},
+	"Adolf Hitler": {
+		"accepted": "Adolf Hitler",
+		"aliases": [
+			"Hitler", "Adolph Hitler"
+		]
+	},
+	"Trudy Walker": {
+		"accepted": "Trudy Walker",
+		"aliases": [
+			"Trudy Crain", "Trudy"
+		]
+	},
+	"Oberführer Oliver Diels": {
+		"accepted": "Oberführer Oliver Diels",
+		"aliases": [
+			"Oberfuhrer Diels", "Oberfeuhrer Oliver Diels"
+		]
+	},
+	"Lem Washington": {
+		"accepted": "Lem Washington",
+		"aliases": [
+			"Lem"
+		]
+	},
+	"Frank Frink": {
+		"accepted": "Frank Frink",
+		"aliases": [
+			"Frank Fink"
+		]
+	},
+	"Anne Crain Walker": {
+		"accepted": "Anne Crain Walker",
+		"aliases": [
+			"Anne Walker"
+		]
+	}
+}

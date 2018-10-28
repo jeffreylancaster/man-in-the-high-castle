@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html>
+<!-- from: https://bl.ocks.org/Andrew-Reid/0aedd5f3fb8b099e3e10690bd38bd458 -->
+  <head>
+    <title>Man in the High Castle: Time Per Character</title>
+    <meta charset="UTF-8">
+    <meta name="description" content="Man in the High Castle: Time Per Character">
+    <meta name="keywords" content="Man in the High Castle, Netflix, X-ray data, Juliana Crain, John Smith, Joe Blake, Frank Frink, Takeshi Kido, Nobusuke Tagomi, Helen Smith, Ed McCarthy, Robert Childan, Nicole Dormer, Hawthorne Abendsen">
+    <meta name="author" content="Jeffrey Lancaster">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/7.0.0/normalize.min.css" />
+    <style>
+      .axis .domain {
+        display: none;
+      }
+      .timestamp{
+        fill: black;
+      }
+      body{
+        font-family: "Helvetica Neue";
+        padding-top: 35px;
+      }
+      header{
+        margin: 15px;
+      }
+      header img {
+        height: 0;
+        margin-top: 0;
+      }
+      header span{
+        font-weight: 300;
+        font-size: 50px;
+      }
+      #cta{
+        color: #999;
+        font-style: italic;
+        font-size: 0.8em;
+      }
+      #description{
+        width: 100%;
+        max-width: 1000px;
+        margin: 0 15px;
+        color: #999;
+        font-size: 0.8em;
+      }
+      #description a{
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>
+        <img>
+        <span></span>
+      </h1>
+    </header>
+    <div id="description">
+      <h2>Playing with Amazon X-Ray data.</h2>
+
+      <p>Code and data for this chart are on <a href="https://github.com/jeffreylancaster/man-in-the-high-castle" target="_blank">github</a>, and a description of the impetus to this project is on <a href="https://medium.com/@jeffrey.lancaster/the-ultimate-game-of-thrones-dataset-a100c0cf35fb" target="_blank">Medium</a>. h/t to <a href="https://www.curiousgnu.com/movie-character-screen-time" target="_blank">curiousgnu.com</a> for X-ray data extraction.</p>
+
+      <p><i>Coming soon: notes on working with X-ray data and handling inconsistencies therein.</i></p>
+
+      <p>Comments and suggestions are welcome on github, Medium, or <a href="mailto: jeffrey@jeffreylancaster.com" target="_blank">here</a>.</p>
+    </div>
+    <svg></svg>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script>
+/* HELPFUL FUNCTIONS */
+
+// to convert scene start/end times into seconds
+function sec(timeString){
+  var sec = 0;
+  if (timeString.length == 0) return sec;
+  var splitArray = timeString.split(":");
+  sec = 3600*parseFloat(splitArray[0])+60*parseFloat(splitArray[1])+parseFloat(splitArray[2]);
+  return sec;
+}
+
+// to convert milliseconds into hh:mm:ss
+function millisecondsToHMS(d) {
+  var date = new Date(null);
+  date.setMilliseconds(d); // specify value for MILLISECONDS here
+  return date.toISOString().substr(11, 8);
+}
+
+// to convert seconds into hh:mm:ss
+function secondsToHMS(d) {
+  var date = new Date(null);
+  date.setSeconds(d); // specify value for SECONDS here
+  return date.toISOString().substr(11, 8);
+}
+
+// to dedpulicate an array
+function onlyUnique(value, index, self) { 
+  return self.indexOf(value) === index;
+}
+
+
+/* VARIABLES AND CONFIGURATION */
+
+
+// variable containers for imported data
+var s1e1, s1e2, s1e3,s1e4,s1e5,s1e6,s1e7,s1e8,s1e9,s1e10,s2e1,s2e2,s2e3,s2e4,s2e5,s2e6,s2e7,s2e8,s2e9,s2e10,s3e1,s3e2,s3e3,s3e4,s3e5,s3e6,s3e7,s3e8,s3e9,s3e10;
+var config, synonyms;
+var episodes = [];
+
+/* IMPORT DATA */
+$.when(
+  $.getJSON('../data/man-in-the-high-castle-s1-e1-xray.json', function(data){s1e1 = Object.assign({}, {'seasonNum': 1, 'episodeNum': 1}, data);}),
+  $.getJSON('../data/man-in-the-high-castle-s1-e2-xray.json', function(data){s1e2 = Object.assign({}, {'seasonNum': 1, 'episodeNum': 2}, data);}),
+  $.getJSON('../data/man-in-the-high-castle-s1-e3-xray.json', function(data){s1e3 = Object.assign({}, {'seasonNum': 1, 'episodeNum': 3}, data);}),
+  $.getJSON('../data/man-in-the-high-castle-s1-e4-xray.json', function(data){s1e4 = Object.assign({}, {'seasonNum': 1, 'episodeNum': 4}, data);}),
+  $.getJSON('../data/man-in-the-high-castle-s1-e5-xray.json', function(data){s1e5 = Object.assign({}, {'seasonNum': 1, 'episodeNum': 5}, data);}),
+  $.getJSON('../data/man-in-the-high-castle-s1-e6-xray.json', function(data){s1e6 = Object.assign({}, {'seasonNum': 1, 'episodeNum': 6}, data);}),
+  $.getJSON('../data/man-in-the-high-castle-s1-e7-xray.json', function(data){s1e7 = Object.assign({}, {'seasonNum': 1, 'episodeNum': 7}, data);}),
+  $.getJSON('../data/man-in-the-high-castle-s1-e8-xray.json', function(data){s1e8 = Object.assign({}, {'seasonNum': 1, 'episodeNum': 8}, data);}),
+  $.getJSON('../data/man-in-the-high-castle-s1-e9-xray.json', function(data){s1e9 = Object.assign({}, {'seasonNum': 1, 'episodeNum': 9}, data);}),
+  $.getJSON('../data/man-in-the-high-castle-s1-e10-xray.json', function(data){s1e10 = Object.assign({}, {'seasonNum': 1, 'episodeNum': 10}, data);}),
+  $.getJSON('../data/man-in-the-high-castle-s2-e1-xray.json', function(data){s2e1 = Object.assign({}, {'seasonNum': 2, 'episodeNum': 1}, data);}),
+  $.getJSON('../data/man-in-the-high-castle-s2-e2-xray.json', function(data){s2e2 = Object.assign({}, {'seasonNum': 2, 'episodeNum': 2}, data);}),
+  $.getJSON('../data/man-in-the-high-castle-s2-e3-xray.json', function(data){s2e3 = Object.assign({}, {'seasonNum': 2, 'episodeNum': 3}, data);}),
+  $.getJSON('../data/man-in-the-high-castle-s2-e4-xray.json', function(data){s2e4 = Object.assign({}, {'seasonNum': 2, 'episodeNum': 4}, data);}),
+  $.getJSON('../data/man-in-the-high-castle-s2-e5-xray.json', function(data){s2e5 = Object.assign({}, {'seasonNum': 2, 'episodeNum': 5}, data);}),
+  $.getJSON('../data/man-in-the-high-castle-s2-e6-xray.json', function(data){s2e6 = Object.assign({}, {'seasonNum': 2, 'episodeNum': 6}, data);}),
+  $.getJSON('../data/man-in-the-high-castle-s2-e7-xray.json', function(data){s2e7 = Object.assign({}, {'seasonNum': 2, 'episodeNum': 7}, data);}),
+  $.getJSON('../data/man-in-the-high-castle-s2-e8-xray.json', function(data){s2e8 = Object.assign({}, {'seasonNum': 2, 'episodeNum': 8}, data);}),
+  $.getJSON('../data/man-in-the-high-castle-s2-e9-xray.json', function(data){s2e9 = Object.assign({}, {'seasonNum': 2, 'episodeNum': 9}, data);}),
+  $.getJSON('../data/man-in-the-high-castle-s2-e10-xray.json', function(data){s2e10 = Object.assign({}, {'seasonNum': 2, 'episodeNum': 10}, data);}),
+  $.getJSON('../data/man-in-the-high-castle-s3-e1-xray.json', function(data){s3e1 = Object.assign({}, {'seasonNum': 3, 'episodeNum': 1}, data);}),
+  $.getJSON('../data/man-in-the-high-castle-s3-e2-xray.json', function(data){s3e2 = Object.assign({}, {'seasonNum': 3, 'episodeNum': 2}, data);}),
+  $.getJSON('../data/man-in-the-high-castle-s3-e3-xray.json', function(data){s3e3 = Object.assign({}, {'seasonNum': 3, 'episodeNum': 3}, data);}),
+  $.getJSON('../data/man-in-the-high-castle-s3-e4-xray.json', function(data){s3e4 = Object.assign({}, {'seasonNum': 3, 'episodeNum': 4}, data);}),
+  $.getJSON('../data/man-in-the-high-castle-s3-e5-xray.json', function(data){s3e5 = Object.assign({}, {'seasonNum': 3, 'episodeNum': 5}, data);}),
+  $.getJSON('../data/man-in-the-high-castle-s3-e6-xray.json', function(data){s3e6 = Object.assign({}, {'seasonNum': 3, 'episodeNum': 6}, data);}),
+  $.getJSON('../data/man-in-the-high-castle-s3-e7-xray.json', function(data){s3e7 = Object.assign({}, {'seasonNum': 3, 'episodeNum': 7}, data);}),
+  $.getJSON('../data/man-in-the-high-castle-s3-e8-xray.json', function(data){s3e8 = Object.assign({}, {'seasonNum': 3, 'episodeNum': 8}, data);}),
+  $.getJSON('../data/man-in-the-high-castle-s3-e9-xray.json', function(data){s3e9 = Object.assign({}, {'seasonNum': 3, 'episodeNum': 9}, data);}),
+  $.getJSON('../data/man-in-the-high-castle-s3-e10-xray.json', function(data){s3e10 = Object.assign({}, {'seasonNum': 3, 'episodeNum': 10}, data);}),
+  $.getJSON("../data/synonyms.json", function(data) {
+    synonyms = data;
+    console.log("synonyms.json loaded");
+  }),
+  $.getJSON("../data/config.json", function(data) {
+    config = data.config;
+    console.log("config.json loaded");
+  })
+  .fail(function() {console.error("config.json not loaded");})
+).then(function() {
+  // massage the data
+  episodes = [s1e1, s1e2, s1e3, s1e4, s1e5, s1e6, s1e7, s1e8, s1e9, s1e10, s2e1, s2e2, s2e3, s2e4, s2e5, s2e6, s2e7, s2e8, s2e9, s2e10, s3e1, s3e2, s3e3, s3e4, s3e5, s3e6, s3e7, s3e8, s3e9, s3e10];
+  episodes.forEach(function(item, i){
+    // 1 if season 1, 2; 2 if season 3
+    var swap = item.page.sections.center.widgets.widgetList.length % 4;
+
+    var sceneData = [];
+    for(k=0; k<item.page.sections.center.widgets.widgetList[swap].widgets.widgetList[0].items.itemList.length; k++){
+      var textMap = item.page.sections.center.widgets.widgetList[swap].widgets.widgetList[0].items.itemList[k].textMap;
+      var trickPlayTimeRange = item.page.sections.center.widgets.widgetList[swap].widgets.widgetList[0].items.itemList[k].trickPlayTimeRange;
+      var partitionedChangeList = item.page.sections.left.widgets.widgetList[0].widgets.widgetList[1].partitionedChangeList;
+
+      // act on partitionedChangeList to build scenes.characters[]
+      var characters = [];
+      
+      // add initial items from initialItemIds
+      partitionedChangeList[k].initialItemIds.forEach(function(val, l){
+        if(val.split("/")[1] === "name"){
+          var name = val.split("/")[val.split("/").length - 1];
+
+          // use synonyms file to replace name
+          for(var i in synonyms){
+            synonyms[i].aliases.forEach(function(alias, index){
+              if(alias === name){
+                name = synonyms[i].accepted;
+              }
+            });
+          }
+
+          characters.push({
+            'name': name,
+            'start': partitionedChangeList[k].timeRange.startTime,
+            'end': partitionedChangeList[k].timeRange.endTime
+          });
+        }
+      });
+
+      // add changes from changesCollection
+      partitionedChangeList[k].changesCollection.forEach(function(val, l){
+        if(val.itemId.split("/")[1] === "name" && val.changeType === "AddItem" && val.itemId.split("/")[val.itemId.split("/").length-2] !== "trivia"){
+          var name = val.itemId.split("/")[val.itemId.split("/").length - 1];
+
+          // use synonyms file to replace name
+          for(var i in synonyms){
+            synonyms[i].aliases.forEach(function(alias, index){
+              if(alias === name){
+                name = synonyms[i].accepted;
+              }
+            });
+          }
+
+          characters.push({
+            'name': name,
+            'start': val.timePosition,
+            'end': partitionedChangeList[k].timeRange.endTime
+          });
+        }
+      });
+      
+      // keeping startTime, endTime, and range to ensure match from different sources
+      sceneData.push({
+        'primary': textMap.PRIMARY,
+        'tertiary': textMap.TERTIARY,
+        'sceneStart': trickPlayTimeRange.startTime,
+        'sceneEnd': trickPlayTimeRange.endTime,
+        'changes': partitionedChangeList[k].changesCollection,
+        'initialIds': partitionedChangeList[k].initialItemIds,
+        'range': partitionedChangeList[k].timeRange,
+        'characters': characters
+      });
+    }
+
+    item.scenes = sceneData;
+  })
+}).then(function() {
+  console.log(episodes);
+  console.log("now that the files are loaded... do magic.");
+
+  /* CONFIG SETUP */
+  $("h1 > img").css({"height": config.logo.height, "vertical-align": "middle", "margin-top": config.logo.marginTop}).attr("src", "../img/"+config.logo.src);
+  $("h1 > span").html(" - "+config.scenesCharacter.title);
+  $("svg").attr({width: config.scenesCharacter.svg.width, height: config.scenesCharacter.svg.height});
+  /* END CONFIG SETUP */
+
+  var allCharacters = []; // array for all characters
+  var uniqueCharacters = []; // array for uniqueCharacters
+  var totalTime = 0;
+  var charactersArray = [];
+  var seasons = [];
+  var end = 0;
+  var exclude = ["Amazon Original", "Studio Logo", "Opening Credits", "End Credits"];
+  var episodesData = episodes;
+        
+  for (var i in episodesData) {
+    // act on scenes
+    var scenes = episodesData[i].scenes;
+    for (var j in scenes){
+      // calculate length of scene in seconds
+      var sceneLength;
+      if(config.countUp == true){
+        sceneLength = scenes[j].sceneEnd - scenes[j].sceneStart;
+      } else if(config.countUp == false){
+        sceneLength = scenes[j].sceneStart - scenes[j].sceneEnd;
+      }
+
+      if(exclude.indexOf(scenes[j].primary.split(".")[1].trim()) > -1){
+        // skip
+
+      } else {
+        // append absolute value of scene start in milliseconds
+        scenes[j].absStartmSec = totalTime;
+        // append absolute value of scene end in milliseconds
+        scenes[j].absEndmSec = totalTime + sceneLength;
+        // store the last absEndSec as end
+        end = scenes[j].absEndmSec;
+        // add scene length to total time
+        totalTime += sceneLength;
+      }
+
+      // add characters in scene to allCharacters array
+      for (var k in scenes[j].characters){
+        if(scenes[j].characters[k].name.length > 0){
+          allCharacters.push(scenes[j].characters[k].name);
+        }
+      }
+    }
+  }
+
+  // deduplicate the list of characters from scenes
+  uniqueCharacters = allCharacters.filter(onlyUnique).sort();
+
+  // modify uniqueCharacters
+  var uniqueCharactersObject = {};
+  for(i=0; i<uniqueCharacters.length; i++){
+    uniqueCharactersObject[uniqueCharacters[i]] = {
+      "name": uniqueCharacters[i],
+      "scenes": [],
+      "total": 0
+    }
+  }
+
+  // sum scene lengths for characters in scenes
+  for(var i in episodesData){
+    if(episodesData[i].scenes){
+      for(var j in episodesData[i].scenes){
+        if(episodesData[i].scenes[j].characters.length > 0 && episodesData[i].scenes[j].absStartmSec){
+          for(var k in episodesData[i].scenes[j].characters){
+            //var location = (episodesData[i].scenes[j].location) ? episodesData[i].scenes[j].location + " - " + episodesData[i].scenes[j].subLocation : episodesData[i].scenes[j].location
+            
+            if(episodesData[i].scenes[j].characters[k].name !== ""){
+              uniqueCharactersObject[episodesData[i].scenes[j].characters[k].name].scenes.push({
+                "absStartmSec":episodesData[i].scenes[j].absStartmSec,
+                "absEndmSec":episodesData[i].scenes[j].absEndmSec,
+                "season":episodesData[i].seasonNum,
+                "caption":episodesData[i].scenes[j].primary.split(".")[1].trim()
+                //,"location":location
+              });
+              uniqueCharactersObject[episodesData[i].scenes[j].characters[k].name].total += episodesData[i].scenes[j].absEndmSec - episodesData[i].scenes[j].absStartmSec;
+            }
+          }
+        }
+      }
+    }
+    if(episodesData[i].scenes.length > 0){
+      seasons.push(episodesData[i].seasonNum);
+    }
+  }
+
+  seasons = seasons.filter(onlyUnique).sort();
+
+  // calculate midpoint of start/end values
+  for(var i in uniqueCharactersObject){
+    var mid = 0;
+    for(j=0; j<uniqueCharactersObject[i].scenes.length; j++){
+      mid += uniqueCharactersObject[i].scenes[j].absStartmSec;
+      mid += uniqueCharactersObject[i].scenes[j].absEndmSec
+    }
+    mid = mid/(2 * uniqueCharactersObject[i].scenes.length);
+    uniqueCharactersObject[i].mid = Math.round(mid);
+  }
+
+  for(var i in uniqueCharactersObject){
+    charactersArray.push(uniqueCharactersObject[i]);
+  }
+
+  charactersArray.sort(function(a, b) { return a.total - b.total; }).reverse();
+
+
+  console.log(charactersArray);
+  
+
+  // build the visualization
+  var data = charactersArray;
+  var barHeight = config.barHeight;
+
+  var svg = d3.select("svg"),
+      margin = config.scenesCharacter.svg.margin,
+      width = +svg.attr("width") - margin.left - margin.right,
+      height = barHeight*data.length + margin.top + margin.bottom,
+      g = svg.append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+  var y = d3.scaleBand() 
+      .rangeRound([0, height])
+      .paddingInner(0.15)
+      .align(0.1);
+
+  var x = d3.scaleLinear()
+      .rangeRound([0, width]);
+
+  var z = d3.scaleOrdinal() //  or d3.schemeCategory20c between () and no .range
+      .range(["#98abc5", "#8a89a6", "#7b6888", "#6b486b", "#a05d56", "#d0743c", "#ff8c00", "#FEC574"]);
+
+  y.domain(data.map(function(d) { return d.name; }));
+  x.domain([0, end]).nice();
+  // z.domain(["1", "2"]);
+
+  for(i=0; i<data.length; i++){
+    g.append("g")
+    .selectAll("g")
+    .data(data[i].scenes)
+    .enter().append("rect")
+      .attr("y", function(d){return y(data[i].name)})
+      .attr("x", function(d){return x(d.absStartmSec)})
+      .attr("width", function(d){return x(d.absEndmSec) - x(d.absStartmSec)})
+      .attr("height", y.bandwidth())
+      .attr("fill", function(d){return z(d.season)})
+      .append("svg:title")
+        .text(function(d) {return d.caption});
+  }
+
+  g.append("g")
+    .attr("class", "axis")
+    .attr("transform", "translate(0,0)")
+    .call(d3.axisLeft(y));
+
+  var legend = g.append("g")
+    .attr("font-family", "sans-serif")
+    .attr("font-size", 10)
+    .attr("text-anchor", "end")
+    .attr("transform", function(d, i) { return `translate(${config.scenesCharacter.svg.legendOffset.x}, ${config.scenesCharacter.svg.legendOffset.y})` })
+    .selectAll("g")
+    .data(seasons)
+    .enter().append("g")
+    .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
+
+  legend.append("rect")
+    .attr("x", width - 19)
+    .attr("width", 19)
+    .attr("height", 19)
+    .attr("fill", z);
+
+  legend.append("text")
+    .attr("x", width - 24)
+    .attr("y", 9.5)
+    .attr("dy", "0.32em")
+    .text(function(d) { return "Season " + d; });
+  
+});
+
+    </script>
+  </body>
+</html>

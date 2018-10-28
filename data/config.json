@@ -1,0 +1,80 @@
+{
+	"config": {
+		"countUp": true,
+		"barHeight": 20,
+		"logo":{
+			"src": "man-in-the-high-castle-logo.png",
+			"height": "120px",
+			"marginTop": "-50px"
+		},
+		"duration": {
+			"title":"Supercut Duration",
+			"svg":{
+				"width":960,
+				"height":6400,
+				"margin":{
+					"top": 20,
+					"right": 40,
+					"bottom": 30,
+					"left": 180
+				},
+				"legendOffset": {
+					"x":20,
+					"y":90
+				}
+			}
+		},
+		"durationBySeason": {
+			"title":"Duration by Season",
+			"svg":{
+				"width":960,
+				"height":500,
+				"margin":{
+					"top": 20,
+					"right": 40,
+					"bottom": 30,
+					"left": 180
+				}
+			}
+		},
+		"durationPercent": {
+			"title":"% Time Per Season",
+			"svg":{
+				"width":960,
+				"height":3080,
+				"margin":{
+					"top": 20,
+					"right": 90,
+					"bottom": 30,
+					"left": 180
+				},
+				"legendOffset": {
+					"x":20,
+					"y":90
+				}
+			}
+		},
+		"durationTreemap": {
+			"title":"Time Per Character Treemap",
+			"name": "Stranger Things",
+  			"includeOthers": true
+		},
+		"scenesCharacter": {
+			"title": "Scenes by Character",
+			"svg":{
+				"width":2000,
+				"height":6400,
+				"margin":{
+					"top": 20,
+					"right": 40,
+					"bottom": 30,
+					"left": 180
+				},
+				"legendOffset": {
+					"x":20,
+					"y":20
+				}
+			}
+		}
+	}
+}
