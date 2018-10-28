@@ -10,13 +10,13 @@ Generally a playground of works in progress, but sharing regardless.
 
 A visualization of how long each character has been on-screen throughout the show
 
-[Preview](https://jeffreylancaster.github.io/man-in-the-high-castle/duration-character/) | [<>](https://github.com/jeffreylancaster/man-in-the-high-castle/blob/master/duration-character/index.html)
+[View](https://jeffreylancaster.github.io/man-in-the-high-castle/duration-character/) | [<>](https://github.com/jeffreylancaster/man-in-the-high-castle/blob/master/duration-character/index.html)
 
 ### Scenes by Character
 
 A visualization of when each character is on-screen throughout the show
 
-[Preview](https://jeffreylancaster.github.io/man-in-the-high-castle/scenes-character/) | [<>](https://github.com/jeffreylancaster/man-in-the-high-castle/blob/master/scenes-character/index.html)
+[View](https://jeffreylancaster.github.io/man-in-the-high-castle/scenes-character/) | [<>](https://github.com/jeffreylancaster/man-in-the-high-castle/blob/master/scenes-character/index.html)
 
 ## Notes on X-ray data inconsistencies
 
