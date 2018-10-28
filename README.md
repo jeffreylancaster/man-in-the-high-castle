@@ -6,4 +6,4 @@ Generally a playground of works in progress, but sharing regardless.
 
 ## Notes on X-ray data inconsistencies
 
-Coming soon
+_Coming soon_
