@@ -1,4 +1,4 @@
-# Man in the High Castle Datasets and Visualizations
+# _Man in the High Castle_ Datasets and Visualizations
 
   Playing with Amazon X-ray data to go directly from X-ray files to d3 visualization(s).
 
