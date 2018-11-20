@@ -7,6 +7,19 @@
 			"height": "120px",
 			"marginTop": "-50px"
 		},
+		"charactersPerScene": {
+			"title": "Characters Per Scene",
+			"svg":{
+				"width":2000,
+				"height":500,
+				"margin":{
+					"top": 20,
+					"right": 40,
+					"bottom": 30,
+					"left": 40
+				}
+			}
+		},
 		"duration": {
 			"title":"Supercut Duration",
 			"svg":{
