@@ -304,66 +304,6 @@ $.when(
     maxCharacters = (allScenes[i].characters.length > maxCharacters) ? allScenes[i].characters.length : maxCharacters;
   }  
 
-  // modify uniqueCharacters
-  // var uniqueCharactersObject = {};
-  // for(i=0; i<uniqueCharacters.length; i++){
-  //   uniqueCharactersObject[uniqueCharacters[i]] = {
-  //     "name": uniqueCharacters[i],
-  //     "scenes": [],
-  //     "total": 0
-  //   }
-  // }
-
-  // sum scene lengths for characters in scenes
-  // for(var i in episodesData){
-  //   if(episodesData[i].scenes){
-  //     for(var j in episodesData[i].scenes){
-  //       if(episodesData[i].scenes[j].characters.length > 0 && episodesData[i].scenes[j].absStartmSec){
-  //         for(var k in episodesData[i].scenes[j].characters){
-  //           //var location = (episodesData[i].scenes[j].location) ? episodesData[i].scenes[j].location + " - " + episodesData[i].scenes[j].subLocation : episodesData[i].scenes[j].location
-            
-  //           if(episodesData[i].scenes[j].characters[k].name !== ""){
-  //             uniqueCharactersObject[episodesData[i].scenes[j].characters[k].name].scenes.push({
-  //               "absStartmSec":episodesData[i].scenes[j].absStartmSec,
-  //               "absEndmSec":episodesData[i].scenes[j].absEndmSec,
-  //               "season":episodesData[i].seasonNum,
-  //               "caption":episodesData[i].scenes[j].primary.split(".")[1].trim()
-  //               //,"location":location
-  //             });
-  //             uniqueCharactersObject[episodesData[i].scenes[j].characters[k].name].total += episodesData[i].scenes[j].absEndmSec - episodesData[i].scenes[j].absStartmSec;
-  //           }
-  //         }
-  //       }
-  //     }
-  //   }
-  //   if(episodesData[i].scenes.length > 0){
-  //     seasons.push(episodesData[i].seasonNum);
-  //   }
-  // }
-
-  // seasons = seasons.filter(onlyUnique).sort();
-
-  // // calculate midpoint of start/end values
-  // for(var i in uniqueCharactersObject){
-  //   var mid = 0;
-  //   for(j=0; j<uniqueCharactersObject[i].scenes.length; j++){
-  //     mid += uniqueCharactersObject[i].scenes[j].absStartmSec;
-  //     mid += uniqueCharactersObject[i].scenes[j].absEndmSec
-  //   }
-  //   mid = mid/(2 * uniqueCharactersObject[i].scenes.length);
-  //   uniqueCharactersObject[i].mid = Math.round(mid);
-  // }
-
-  // for(var i in uniqueCharactersObject){
-  //   charactersArray.push(uniqueCharactersObject[i]);
-  // }
-
-  // charactersArray.sort(function(a, b) { return a.total - b.total; }).reverse();
-
-
-  // console.log(charactersArray);
-  
-
   // build the visualization
   var data = allScenes;
   var barHeight = config.barHeight;
@@ -392,6 +332,8 @@ $.when(
   x.domain([0, end]).nice();
   // z.domain(["1", "2"]);
 
+  console.log(data);
+
   for(i=0; i<data.length; i++){
     g.append("g")
     .selectAll("g")
@@ -407,7 +349,7 @@ $.when(
       })
       .attr("class", function(d){return d.name.toLowerCase().replace(/([^A-Z0-9])/gi,"")})
       .append("svg:title")
-        .text(function(d) {return d.name});
+        .text(function(d) {return d.name + " - " + data[i].primary.split(".")[1].trim()});
   }
 
   var t = d3.transition()
