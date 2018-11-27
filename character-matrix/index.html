@@ -46,6 +46,25 @@
       #description a{
         text-decoration: none;
       }
+      @import url(https://bost.ocks.org/mike/style.css);
+      .background {
+        fill: #eee;
+      }
+      line {
+        stroke: #fff;
+      }
+      text{
+        font-size: 0.65em;
+      }
+      text.active {
+        fill: red;
+      }
+      svg{
+        padding-left: 200px;
+      }
+      .cell{
+        fill: #CCC;
+      }
     </style>
   </head>
   <body>
@@ -63,11 +82,17 @@
       <p><i>Coming soon: notes on working with X-ray data and handling inconsistencies therein.</i></p>
 
       <p>Comments and suggestions are welcome on github, Medium, or <a href="mailto: jeffrey@jeffreylancaster.com" target="_blank">here</a>.</p>
+
+      <p>Order: <select id="order">
+        <option value="name">by Name</option>
+        <option value="count">by Frequency</option>
+        <!-- <option value="group">by Cluster</option> -->
+      </select></p>
     </div>
     <svg></svg>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
-    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="https://d3js.org/d3.v2.min.js"></script>
     <script>
 /* HELPFUL FUNCTIONS */
 
@@ -142,6 +167,12 @@ $.when(
   $.getJSON('../data/man-in-the-high-castle-s3-e10-xray.json', function(data){s3e10 = Object.assign({}, {'seasonNum': 3, 'episodeNum': 10}, data);}),
   $.getJSON("../data/synonyms.json", function(data) {
     synonyms = data;
+    for(var i in synonyms){
+      for(j=0; j<synonyms[i].aliases.length; j++){
+        synonyms[synonyms[i].aliases[j]] = {};
+        synonyms[synonyms[i].aliases[j]].accepted = synonyms[i].accepted; 
+      }
+    }
     console.log("synonyms.json loaded");
   }),
   $.getJSON("../data/config.json", function(data) {
@@ -153,13 +184,35 @@ $.when(
   // massage the data
   episodes = [s1e1, s1e2, s1e3, s1e4, s1e5, s1e6, s1e7, s1e8, s1e9, s1e10, s2e1, s2e2, s2e3, s2e4, s2e5, s2e6, s2e7, s2e8, s2e9, s2e10, s3e1, s3e2, s3e3, s3e4, s3e5, s3e6, s3e7, s3e8, s3e9, s3e10];
   episodes.forEach(function(item, i){
+    // add all x-ray items from episode
+    var items = item.page.sections.left.widgets.widgetList[0].widgets.widgetList[1].items; // a list of all characters, soundtrack, trivia, etc.
+    item.items = items;
+    
     // 1 if season 1, 2; 2 if season 3
-    var swap = item.page.sections.center.widgets.widgetList.length % 4;
+    // season 1, 2
+      // widgetList[0] is showing cast (tabType: "castTab")
+      // widgetList[1] is showing scenes and time ranges (tabType: "scenesTab")
+      // widgetList[2] is showing characters (tabType: "characterTab")
+      // widgetList[3] is showing music list (tabType: "musicTab")
+      // widgetList[4] is showing trivia (tabType: "triviaTab")
+    // season 3
+      // widgetList[0] is showing photos and videos gallery (tabType: "galleryTab")
+      // widgetList[1] is showing cast (tabType: "castTab")
+      // widgetList[2] is showing scenes and time ranges (tabType: "scenesTab")
+      // widgetList[3] is showing characters (tabType: "characterTab")
+      // widgetList[4] is showing music list (tabType: "musicTab")
+      // widgetList[5] is showing trivia (tabType: "triviaTab")
+    
+    // find the widget with scenes and time ranges
+    var scenesTab;
+    for(j=0; j<item.page.sections.center.widgets.widgetList.length; j++){
+      scenesTab = (item.page.sections.center.widgets.widgetList[j].tabType == "scenesTab") ? j : scenesTab;
+    }
 
     var sceneData = [];
-    for(k=0; k<item.page.sections.center.widgets.widgetList[swap].widgets.widgetList[0].items.itemList.length; k++){
-      var textMap = item.page.sections.center.widgets.widgetList[swap].widgets.widgetList[0].items.itemList[k].textMap;
-      var trickPlayTimeRange = item.page.sections.center.widgets.widgetList[swap].widgets.widgetList[0].items.itemList[k].trickPlayTimeRange;
+    for(k=0; k<item.page.sections.center.widgets.widgetList[scenesTab].widgets.widgetList[0].items.itemList.length; k++){
+      var textMap = item.page.sections.center.widgets.widgetList[scenesTab].widgets.widgetList[0].items.itemList[k].textMap;
+      var trickPlayTimeRange = item.page.sections.center.widgets.widgetList[scenesTab].widgets.widgetList[0].items.itemList[k].trickPlayTimeRange;
       var partitionedChangeList = item.page.sections.left.widgets.widgetList[0].widgets.widgetList[1].partitionedChangeList;
 
       // act on partitionedChangeList to build scenes.characters[]
@@ -171,19 +224,15 @@ $.when(
           var name = val.split("/")[val.split("/").length - 1];
 
           // use synonyms file to replace name
-          for(var i in synonyms){
-            synonyms[i].aliases.forEach(function(alias, index){
-              if(alias === name){
-                name = synonyms[i].accepted;
-              }
+          name = (synonyms.hasOwnProperty(name)) ? synonyms[name].accepted : name;
+
+          if(name != ""){
+            characters.push({
+              'name': name,
+              'start': partitionedChangeList[k].timeRange.startTime,
+              'end': partitionedChangeList[k].timeRange.endTime
             });
           }
-
-          characters.push({
-            'name': name,
-            'start': partitionedChangeList[k].timeRange.startTime,
-            'end': partitionedChangeList[k].timeRange.endTime
-          });
         }
       });
 
@@ -193,19 +242,15 @@ $.when(
           var name = val.itemId.split("/")[val.itemId.split("/").length - 1];
 
           // use synonyms file to replace name
-          for(var i in synonyms){
-            synonyms[i].aliases.forEach(function(alias, index){
-              if(alias === name){
-                name = synonyms[i].accepted;
-              }
+          name = (synonyms.hasOwnProperty(name)) ? synonyms[name].accepted : name;
+
+          if(name !== ""){
+            characters.push({
+              'name': name,
+              'start': val.timePosition,
+              'end': partitionedChangeList[k].timeRange.endTime
             });
           }
-
-          characters.push({
-            'name': name,
-            'start': val.timePosition,
-            'end': partitionedChangeList[k].timeRange.endTime
-          });
         }
       });
       
@@ -221,54 +266,29 @@ $.when(
         'characters': characters
       });
     }
-
     item.scenes = sceneData;
   })
 }).then(function() {
-  console.log(episodes);
   console.log("now that the files are loaded... do magic.");
 
   /* CONFIG SETUP */
   $("h1 > img").css({"height": config.logo.height, "vertical-align": "middle", "margin-top": config.logo.marginTop}).attr("src", "../img/"+config.logo.src);
-  $("h1 > span").html(" - "+config.scenesCharacter.title);
-  $("svg").attr({width: config.scenesCharacter.svg.width, height: config.scenesCharacter.svg.height});
+  $("h1 > span").html(" - "+config.characterMatrix.title);
+  $("svg").attr({width: config.characterMatrix.svg.width, height: config.characterMatrix.svg.height});
   /* END CONFIG SETUP */
 
   var allCharacters = []; // array for all characters
   var uniqueCharacters = []; // array for uniqueCharacters
-  var totalTime = 0;
-  var charactersArray = [];
-  var seasons = [];
-  var end = 0;
-  var exclude = ["Amazon Original", "Studio Logo", "Opening Credits", "End Credits"];
   var episodesData = episodes;
-        
-  for (var i in episodesData) {
+  var matrixObject = {
+    "nodes": [],
+    "links": []
+  }
+
+  for(var i in episodesData){
     // act on scenes
     var scenes = episodesData[i].scenes;
-    for (var j in scenes){
-      // calculate length of scene in seconds
-      var sceneLength;
-      if(config.countUp == true){
-        sceneLength = scenes[j].sceneEnd - scenes[j].sceneStart;
-      } else if(config.countUp == false){
-        sceneLength = scenes[j].sceneStart - scenes[j].sceneEnd;
-      }
-
-      if(exclude.indexOf(scenes[j].primary.split(".")[1].trim()) > -1){
-        // skip
-
-      } else {
-        // append absolute value of scene start in milliseconds
-        scenes[j].absStartmSec = totalTime;
-        // append absolute value of scene end in milliseconds
-        scenes[j].absEndmSec = totalTime + sceneLength;
-        // store the last absEndSec as end
-        end = scenes[j].absEndmSec;
-        // add scene length to total time
-        totalTime += sceneLength;
-      }
-
+    for(var j in scenes){
       // add characters in scene to allCharacters array
       for (var k in scenes[j].characters){
         if(scenes[j].characters[k].name.length > 0){
@@ -281,133 +301,169 @@ $.when(
   // deduplicate the list of characters from scenes
   uniqueCharacters = allCharacters.filter(onlyUnique).sort();
 
-  // modify uniqueCharacters
-  var uniqueCharactersObject = {};
+  for(var i in uniqueCharacters){
+    matrixObject.nodes.push({
+      "name":uniqueCharacters[i],
+      "count":0
+    })
+  }
+
+  var matrix = new Array(uniqueCharacters.length);
   for(i=0; i<uniqueCharacters.length; i++){
-    uniqueCharactersObject[uniqueCharacters[i]] = {
-      "name": uniqueCharacters[i],
-      "scenes": [],
-      "total": 0
+    matrix[i] = new Array(uniqueCharacters.length);
+    for(j=0; j<uniqueCharacters.length; j++){
+      matrix[i][j] = {
+        "x": j,
+        "y": i,
+        "z": 0
+      };
     }
   }
 
-  // sum scene lengths for characters in scenes
   for(var i in episodesData){
-    if(episodesData[i].scenes){
-      for(var j in episodesData[i].scenes){
-        if(episodesData[i].scenes[j].characters.length > 0 && episodesData[i].scenes[j].absStartmSec){
-          for(var k in episodesData[i].scenes[j].characters){
-            //var location = (episodesData[i].scenes[j].location) ? episodesData[i].scenes[j].location + " - " + episodesData[i].scenes[j].subLocation : episodesData[i].scenes[j].location
-            
-            if(episodesData[i].scenes[j].characters[k].name !== ""){
-              uniqueCharactersObject[episodesData[i].scenes[j].characters[k].name].scenes.push({
-                "absStartmSec":episodesData[i].scenes[j].absStartmSec,
-                "absEndmSec":episodesData[i].scenes[j].absEndmSec,
-                "season":episodesData[i].seasonNum,
-                "caption":episodesData[i].scenes[j].primary.split(".").slice(1,).join(".")
-                //,"location":location
-              });
-              uniqueCharactersObject[episodesData[i].scenes[j].characters[k].name].total += episodesData[i].scenes[j].absEndmSec - episodesData[i].scenes[j].absStartmSec;
-            }
-          }
+    var scenes = episodesData[i].scenes;
+    for(var j in scenes){
+      for(var k in scenes[j].characters){
+        for(var l in scenes[j].characters){
+          var m = uniqueCharacters.indexOf(scenes[j].characters[k].name);
+          var n = uniqueCharacters.indexOf(scenes[j].characters[l].name);
+          // add 1 to the co-occurrence matrix
+          matrix[m][n].z++;
+          // this count is just used to sort by frequency, not an actual count
+          matrixObject.nodes[m].count++;
+          matrixObject.nodes[n].count++;
         }
       }
     }
-    if(episodesData[i].scenes.length > 0){
-      seasons.push(episodesData[i].seasonNum);
-    }
   }
-
-  seasons = seasons.filter(onlyUnique).sort();
-
-  // calculate midpoint of start/end values
-  for(var i in uniqueCharactersObject){
-    var mid = 0;
-    for(j=0; j<uniqueCharactersObject[i].scenes.length; j++){
-      mid += uniqueCharactersObject[i].scenes[j].absStartmSec;
-      mid += uniqueCharactersObject[i].scenes[j].absEndmSec
-    }
-    mid = mid/(2 * uniqueCharactersObject[i].scenes.length);
-    uniqueCharactersObject[i].mid = Math.round(mid);
-  }
-
-  for(var i in uniqueCharactersObject){
-    charactersArray.push(uniqueCharactersObject[i]);
-  }
-
-  charactersArray.sort(function(a, b) { return a.total - b.total; }).reverse();
-
-
-  console.log(charactersArray);
-  
 
   // build the visualization
-  var data = charactersArray;
-  var barHeight = config.barHeight;
+  var width, height;
+    
+  width = config.characterMatrix.svg.width;
+  height = config.characterMatrix.svg.height;
 
-  var svg = d3.select("svg"),
-      margin = config.scenesCharacter.svg.margin,
-      width = +svg.attr("width") - margin.left - margin.right,
-      height = barHeight*data.length + margin.top + margin.bottom,
-      g = svg.append("g")
-        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+  var x = d3.scale.ordinal().rangeBands([0, width]),
+    z = d3.scale.linear().domain([0, 4]).clamp(true),
+    c = d3.scale.category10().domain(d3.range(10));
 
-  var y = d3.scaleBand() 
-      .rangeRound([0, height])
-      .paddingInner(0.15)
-      .align(0.1);
+var svg = d3.select("svg")
+    .attr("width", width + config.characterMatrix.svg.margin.left + config.characterMatrix.svg.margin.right)
+    .attr("height", height + config.characterMatrix.svg.margin.top + config.characterMatrix.svg.margin.bottom)
+    .style("margin-left", -config.characterMatrix.svg.margin.left + "px")
+  .append("g")
+    .attr("transform", "translate(" + config.characterMatrix.svg.margin.left + "," + config.characterMatrix.svg.margin.top + ")");
 
-  var x = d3.scaleLinear()
-      .rangeRound([0, width]);
+  var nodes = matrixObject.nodes,
+    n = matrixObject.nodes.length;
 
-  var z = d3.scaleOrdinal() //  or d3.schemeCategory20c between () and no .range
-      .range(["#98abc5", "#8a89a6", "#7b6888", "#6b486b", "#a05d56", "#d0743c", "#ff8c00", "#FEC574"]);
+  // Precompute the orders.
+  var orders = {
+    name: d3.range(n).sort(function(a, b) { return d3.ascending(nodes[a].name, nodes[b].name); }),
+    count: d3.range(n).sort(function(a, b) { return nodes[b].count - nodes[a].count; }),
+    group: d3.range(n).sort(function(a, b) { return nodes[b].group - nodes[a].group; })
+  };
 
-  y.domain(data.map(function(d) { return d.name; }));
-  x.domain([0, end]).nice();
-  // z.domain(["1", "2"]);
+  // The default sort order.
+  x.domain(orders.name);
 
-  for(i=0; i<data.length; i++){
-    g.append("g")
-    .selectAll("g")
-    .data(data[i].scenes)
-    .enter().append("rect")
-      .attr("y", function(d){return y(data[i].name)})
-      .attr("x", function(d){return x(d.absStartmSec)})
-      .attr("width", function(d){return x(d.absEndmSec) - x(d.absStartmSec)})
-      .attr("height", y.bandwidth())
-      .attr("fill", function(d){return z(d.season)})
-      .append("svg:title")
-        .text(function(d) {return d.caption});
+  svg.append("rect")
+      .attr("class", "background")
+      .attr("width", width)
+      .attr("height", height);
+
+  var row = svg.selectAll(".row")
+      .data(matrix)
+    .enter().append("g")
+      .attr("class", "row")
+      .attr("transform", function(d, i) { return "translate(0," + x(i) + ")"; })
+      .each(row);
+
+  row.append("line")
+      .attr("x2", width);
+
+  row.append("text")
+      .attr("x", -6)
+      .attr("y", x.rangeBand() / 2)
+      .attr("dy", ".32em")
+      .attr("text-anchor", "end")
+      .text(function(d, i) { return nodes[i].name; });
+
+  var column = svg.selectAll(".column")
+      .data(matrix)
+    .enter().append("g")
+      .attr("class", "column")
+      .attr("transform", function(d, i) { return "translate(" + x(i) + ")rotate(-90)"; });
+
+  column.append("line")
+      .attr("x1", -width);
+
+  column.append("text")
+      .attr("x", 6)
+      .attr("y", x.rangeBand() / 2)
+      .attr("dy", ".32em")
+      .attr("text-anchor", "start")
+      .text(function(d, i) { return nodes[i].name; });
+
+  function row(row) {
+    var cell = d3.select(this).selectAll(".cell")
+        .data(row.filter(function(d) { return d.z; }))
+      .enter().append("rect")
+        .attr("class", "cell")
+        .attr("x", function(d) { return x(d.x); })
+        .attr("width", x.rangeBand())
+        .attr("height", x.rangeBand())
+        .style("fill-opacity", function(d) { return z(d.z); })
+        .style("fill", function(d) { return nodes[d.x].group == nodes[d.y].group ? c(nodes[d.x].group) : null; })
+        .append("title")
+          .text(function(d){
+            var counter = (d.z > 1) ? "s" : "";
+            if(d.x == d.y){
+              return nodes[d.x].name + " has been in " + d.z + " scene"+counter+".";
+            } else {
+              return nodes[d.x].name + " and " + nodes[d.y].name + " have been in " + d.z + " scene"+counter+" together.";
+            }
+          })
+        .on("mouseover", mouseover)
+        .on("mouseout", mouseout);
   }
 
-  g.append("g")
-    .attr("class", "axis")
-    .attr("transform", "translate(0,0)")
-    .call(d3.axisLeft(y));
+  function mouseover(p) {
+    d3.selectAll(".row text").classed("active", function(d, i) { return i == p.y; });
+    d3.selectAll(".column text").classed("active", function(d, i) { return i == p.x; });
+  }
 
-  var legend = g.append("g")
-    .attr("font-family", "sans-serif")
-    .attr("font-size", 10)
-    .attr("text-anchor", "end")
-    .attr("transform", function(d, i) { return `translate(${config.scenesCharacter.svg.legendOffset.x}, ${config.scenesCharacter.svg.legendOffset.y})` })
-    .selectAll("g")
-    .data(seasons)
-    .enter().append("g")
-    .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; });
+  function mouseout() {
+    d3.selectAll("text").classed("active", false);
+  }
 
-  legend.append("rect")
-    .attr("x", width - 19)
-    .attr("width", 19)
-    .attr("height", 19)
-    .attr("fill", z);
+  d3.select("#order").on("change", function() {
+    clearTimeout(timeout);
+    order(this.value);
+  });
 
-  legend.append("text")
-    .attr("x", width - 24)
-    .attr("y", 9.5)
-    .attr("dy", "0.32em")
-    .text(function(d) { return "Season " + d; });
-  
+  function order(value) {
+    x.domain(orders[value]);
+
+    var t = svg.transition().duration(2500);
+
+    t.selectAll(".row")
+        .delay(function(d, i) { return x(i) * 4; })
+        .attr("transform", function(d, i) { return "translate(0," + x(i) + ")"; })
+      .selectAll(".cell")
+        .delay(function(d) { return x(d.x) * 4; })
+        .attr("x", function(d) { return x(d.x); });
+
+    t.selectAll(".column")
+        .delay(function(d, i) { return x(i) * 4; })
+        .attr("transform", function(d, i) { return "translate(" + x(i) + ")rotate(-90)"; });
+  }
+
+  var timeout = setTimeout(function() {
+    order("count");
+    d3.select("#order").property("selectedIndex", 1).node().focus();
+  }, 5000);
+
 });
 
     </script>

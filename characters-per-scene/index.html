@@ -349,7 +349,7 @@ $.when(
       })
       .attr("class", function(d){return d.name.toLowerCase().replace(/([^A-Z0-9])/gi,"")})
       .append("svg:title")
-        .text(function(d) {return d.name + " - " + data[i].primary.split(".")[1].trim()});
+        .text(function(d) {return d.name + " - " + data[i].primary.split(".").slice(1,).join(".")});
   }
 
   var t = d3.transition()

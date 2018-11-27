@@ -7,6 +7,19 @@
 			"height": "120px",
 			"marginTop": "-50px"
 		},
+		"characterMatrix": {
+			"title": "Character Co-Occurrence",
+			"svg":{
+				"width":3000,
+				"height":3000,
+				"margin":{
+					"top": 200,
+					"right": 40,
+					"bottom": 30,
+					"left": 200
+				}
+			}
+		},
 		"charactersPerScene": {
 			"title": "Characters Per Scene",
 			"svg":{

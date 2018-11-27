@@ -142,6 +142,12 @@ $.when(
   $.getJSON('../data/man-in-the-high-castle-s3-e10-xray.json', function(data){s3e10 = Object.assign({}, {'seasonNum': 3, 'episodeNum': 10}, data);}),
   $.getJSON("../data/synonyms.json", function(data) {
     synonyms = data;
+    for(var i in synonyms){
+      for(j=0; j<synonyms[i].aliases.length; j++){
+        synonyms[synonyms[i].aliases[j]] = {};
+        synonyms[synonyms[i].aliases[j]].accepted = synonyms[i].accepted; 
+      }
+    }
     console.log("synonyms.json loaded");
   }),
   $.getJSON("../data/config.json", function(data) {
@@ -153,13 +159,35 @@ $.when(
   // massage the data
   episodes = [s1e1, s1e2, s1e3, s1e4, s1e5, s1e6, s1e7, s1e8, s1e9, s1e10, s2e1, s2e2, s2e3, s2e4, s2e5, s2e6, s2e7, s2e8, s2e9, s2e10, s3e1, s3e2, s3e3, s3e4, s3e5, s3e6, s3e7, s3e8, s3e9, s3e10];
   episodes.forEach(function(item, i){
+    // add all x-ray items from episode
+    var items = item.page.sections.left.widgets.widgetList[0].widgets.widgetList[1].items; // a list of all characters, soundtrack, trivia, etc.
+    item.items = items;
+    
     // 1 if season 1, 2; 2 if season 3
-    var swap = item.page.sections.center.widgets.widgetList.length % 4;
+    // season 1, 2
+      // widgetList[0] is showing cast (tabType: "castTab")
+      // widgetList[1] is showing scenes and time ranges (tabType: "scenesTab")
+      // widgetList[2] is showing characters (tabType: "characterTab")
+      // widgetList[3] is showing music list (tabType: "musicTab")
+      // widgetList[4] is showing trivia (tabType: "triviaTab")
+    // season 3
+      // widgetList[0] is showing photos and videos gallery (tabType: "galleryTab")
+      // widgetList[1] is showing cast (tabType: "castTab")
+      // widgetList[2] is showing scenes and time ranges (tabType: "scenesTab")
+      // widgetList[3] is showing characters (tabType: "characterTab")
+      // widgetList[4] is showing music list (tabType: "musicTab")
+      // widgetList[5] is showing trivia (tabType: "triviaTab")
+    
+    // find the widget with scenes and time ranges
+    var scenesTab;
+    for(j=0; j<item.page.sections.center.widgets.widgetList.length; j++){
+      scenesTab = (item.page.sections.center.widgets.widgetList[j].tabType == "scenesTab") ? j : scenesTab;
+    }
 
     var sceneData = [];
-    for(k=0; k<item.page.sections.center.widgets.widgetList[swap].widgets.widgetList[0].items.itemList.length; k++){
-      var textMap = item.page.sections.center.widgets.widgetList[swap].widgets.widgetList[0].items.itemList[k].textMap;
-      var trickPlayTimeRange = item.page.sections.center.widgets.widgetList[swap].widgets.widgetList[0].items.itemList[k].trickPlayTimeRange;
+    for(k=0; k<item.page.sections.center.widgets.widgetList[scenesTab].widgets.widgetList[0].items.itemList.length; k++){
+      var textMap = item.page.sections.center.widgets.widgetList[scenesTab].widgets.widgetList[0].items.itemList[k].textMap;
+      var trickPlayTimeRange = item.page.sections.center.widgets.widgetList[scenesTab].widgets.widgetList[0].items.itemList[k].trickPlayTimeRange;
       var partitionedChangeList = item.page.sections.left.widgets.widgetList[0].widgets.widgetList[1].partitionedChangeList;
 
       // act on partitionedChangeList to build scenes.characters[]
@@ -171,13 +199,7 @@ $.when(
           var name = val.split("/")[val.split("/").length - 1];
 
           // use synonyms file to replace name
-          for(var i in synonyms){
-            synonyms[i].aliases.forEach(function(alias, index){
-              if(alias === name){
-                name = synonyms[i].accepted;
-              }
-            });
-          }
+          name = (synonyms.hasOwnProperty(name)) ? synonyms[name].accepted : name;
 
           characters.push({
             'name': name,
@@ -193,13 +215,7 @@ $.when(
           var name = val.itemId.split("/")[val.itemId.split("/").length - 1];
 
           // use synonyms file to replace name
-          for(var i in synonyms){
-            synonyms[i].aliases.forEach(function(alias, index){
-              if(alias === name){
-                name = synonyms[i].accepted;
-              }
-            });
-          }
+          name = (synonyms.hasOwnProperty(name)) ? synonyms[name].accepted : name;
 
           characters.push({
             'name': name,
@@ -221,7 +237,6 @@ $.when(
         'characters': characters
       });
     }
-
     item.scenes = sceneData;
   })
 }).then(function() {
