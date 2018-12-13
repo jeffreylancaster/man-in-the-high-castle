@@ -5,76 +5,14 @@
     <title>Man in the High Castle: Time Per Character</title>
     <meta charset="UTF-8">
     <meta name="description" content="Man in the High Castle: Time Per Character">
-    <meta name="keywords" content="Man in the High Castle, Netflix, X-ray data, Juliana Crain, John Smith, Joe Blake, Frank Frink, Takeshi Kido, Nobusuke Tagomi, Helen Smith, Ed McCarthy, Robert Childan, Nicole Dormer, Hawthorne Abendsen">
+    <meta name="keywords" content="Man in the High Castle, Amazon, X-ray data, Juliana Crain, John Smith, Joe Blake, Frank Frink, Takeshi Kido, Nobusuke Tagomi, Helen Smith, Ed McCarthy, Robert Childan, Nicole Dormer, Hawthorne Abendsen">
     <meta name="author" content="Jeffrey Lancaster">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/7.0.0/normalize.min.css" />
-    <style>
-      .axis .domain {
-        display: none;
-      }
-      .timestamp{
-        fill: black;
-      }
-      body{
-        font-family: "Helvetica Neue";
-        padding-top: 35px;
-      }
-      header{
-        margin: 15px;
-      }
-      header img {
-        height: 0;
-        margin-top: 0;
-      }
-      header span{
-        font-weight: 300;
-        font-size: 50px;
-      }
-      #cta{
-        color: #999;
-        font-style: italic;
-        font-size: 0.8em;
-      }
-      #description{
-        width: 100%;
-        max-width: 1000px;
-        margin: 0 15px;
-        color: #999;
-        font-size: 0.8em;
-      }
-      #description a{
-        text-decoration: none;
-      }
-      @import url(https://bost.ocks.org/mike/style.css);
-      .background {
-        fill: #eee;
-      }
-      line {
-        stroke: #fff;
-      }
-      text{
-        font-size: 0.65em;
-      }
-      text.active {
-        fill: red;
-      }
-      svg{
-        padding-left: 200px;
-      }
-      .cell{
-        fill: #CCC;
-      }
-    </style>
+    <link rel="stylesheet" href="../style.css">
   </head>
   <body>
-    <header>
-      <h1>
-        <img>
-        <span></span>
-      </h1>
-    </header>
-    <div id="description">
+    <!--
       <h2>Playing with Amazon X-Ray data.</h2>
 
       <p>Code and data for this chart are on <a href="https://github.com/jeffreylancaster/man-in-the-high-castle" target="_blank">github</a>, and a description of the impetus to this project is on <a href="https://medium.com/@jeffrey.lancaster/the-ultimate-game-of-thrones-dataset-a100c0cf35fb" target="_blank">Medium</a>. h/t to <a href="https://www.curiousgnu.com/movie-character-screen-time" target="_blank">curiousgnu.com</a> for X-ray data extraction.</p>
@@ -82,14 +20,13 @@
       <p><i>Coming soon: notes on working with X-ray data and handling inconsistencies therein.</i></p>
 
       <p>Comments and suggestions are welcome on github, Medium, or <a href="mailto: jeffrey@jeffreylancaster.com" target="_blank">here</a>.</p>
-
+    -->
       <p>Order: <select id="order">
         <option value="name">by Name</option>
         <option value="count">by Frequency</option>
         <!-- <option value="group">by Cluster</option> -->
       </select></p>
-    </div>
-    <svg></svg>
+    <svg class="matrix"></svg>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
     <script src="https://d3js.org/d3.v2.min.js"></script>
@@ -272,8 +209,6 @@ $.when(
   console.log("now that the files are loaded... do magic.");
 
   /* CONFIG SETUP */
-  $("h1 > img").css({"height": config.logo.height, "vertical-align": "middle", "margin-top": config.logo.marginTop}).attr("src", "../img/"+config.logo.src);
-  $("h1 > span").html(" - "+config.characterMatrix.title);
   $("svg").attr({width: config.characterMatrix.svg.width, height: config.characterMatrix.svg.height});
   /* END CONFIG SETUP */
 
