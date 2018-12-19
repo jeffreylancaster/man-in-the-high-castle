@@ -1,35 +1,25 @@
 <!DOCTYPE html>
 <html>
-<!-- from: https://bl.ocks.org/Andrew-Reid/0aedd5f3fb8b099e3e10690bd38bd458 -->
   <head>
     <title>Man in the High Castle: Time Per Character</title>
     <meta charset="UTF-8">
     <meta name="description" content="Man in the High Castle: Time Per Character">
-    <meta name="keywords" content="Man in the High Castle, Amazon, X-ray data, Juliana Crain, John Smith, Joe Blake, Frank Frink, Takeshi Kido, Nobusuke Tagomi, Helen Smith, Ed McCarthy, Robert Childan, Nicole Dormer, Hawthorne Abendsen">
     <meta name="author" content="Jeffrey Lancaster">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/7.0.0/normalize.min.css" />
     <link rel="stylesheet" href="../style.css">
   </head>
   <body>
-    <!--
-      <h2>Playing with Amazon X-Ray data.</h2>
-
-      <p>Code and data for this chart are on <a href="https://github.com/jeffreylancaster/man-in-the-high-castle" target="_blank">github</a>, and a description of the impetus to this project is on <a href="https://medium.com/@jeffrey.lancaster/the-ultimate-game-of-thrones-dataset-a100c0cf35fb" target="_blank">Medium</a>. h/t to <a href="https://www.curiousgnu.com/movie-character-screen-time" target="_blank">curiousgnu.com</a> for X-ray data extraction.</p>
-
-      <p><i>Coming soon: notes on working with X-ray data and handling inconsistencies therein.</i></p>
-
-      <p>Comments and suggestions are welcome on github, Medium, or <a href="mailto: jeffrey@jeffreylancaster.com" target="_blank">here</a>.</p>
-    -->
-      <p>Order: <select id="order">
-        <option value="name">by Name</option>
-        <option value="count">by Frequency</option>
-        <!-- <option value="group">by Cluster</option> -->
-      </select></p>
+    <p>
+      <select id="order">
+        <option value="name">Order by Name</option>
+        <option value="count">Order by Frequency</option>
+        <!-- <option value="group">Order by Cluster</option> -->
+      </select>
+    </p>
     <svg class="matrix"></svg>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
     <script src="https://d3js.org/d3.v2.min.js"></script>
+    <script src="https://d3js.org/d3.v4.min.js"></script>
     <script>
 /* HELPFUL FUNCTIONS */
 
@@ -62,64 +52,98 @@ function onlyUnique(value, index, self) {
 }
 
 
-/* VARIABLES AND CONFIGURATION */
-
-
-// variable containers for imported data
-var s1e1, s1e2, s1e3,s1e4,s1e5,s1e6,s1e7,s1e8,s1e9,s1e10,s2e1,s2e2,s2e3,s2e4,s2e5,s2e6,s2e7,s2e8,s2e9,s2e10,s3e1,s3e2,s3e3,s3e4,s3e5,s3e6,s3e7,s3e8,s3e9,s3e10;
-var config, synonyms;
-var episodes = [];
+var config = {
+  "title": "Character Co-Occurrence",
+  "width":3000,
+  "height":3000,
+  "margin":{
+    "top": 200,
+    "right": 40,
+    "bottom": 30,
+    "left": 200
+  }
+}
 
 /* IMPORT DATA */
-$.when(
-  $.getJSON('../data/man-in-the-high-castle-s1-e1-xray.json', function(data){s1e1 = Object.assign({}, {'seasonNum': 1, 'episodeNum': 1}, data);}),
-  $.getJSON('../data/man-in-the-high-castle-s1-e2-xray.json', function(data){s1e2 = Object.assign({}, {'seasonNum': 1, 'episodeNum': 2}, data);}),
-  $.getJSON('../data/man-in-the-high-castle-s1-e3-xray.json', function(data){s1e3 = Object.assign({}, {'seasonNum': 1, 'episodeNum': 3}, data);}),
-  $.getJSON('../data/man-in-the-high-castle-s1-e4-xray.json', function(data){s1e4 = Object.assign({}, {'seasonNum': 1, 'episodeNum': 4}, data);}),
-  $.getJSON('../data/man-in-the-high-castle-s1-e5-xray.json', function(data){s1e5 = Object.assign({}, {'seasonNum': 1, 'episodeNum': 5}, data);}),
-  $.getJSON('../data/man-in-the-high-castle-s1-e6-xray.json', function(data){s1e6 = Object.assign({}, {'seasonNum': 1, 'episodeNum': 6}, data);}),
-  $.getJSON('../data/man-in-the-high-castle-s1-e7-xray.json', function(data){s1e7 = Object.assign({}, {'seasonNum': 1, 'episodeNum': 7}, data);}),
-  $.getJSON('../data/man-in-the-high-castle-s1-e8-xray.json', function(data){s1e8 = Object.assign({}, {'seasonNum': 1, 'episodeNum': 8}, data);}),
-  $.getJSON('../data/man-in-the-high-castle-s1-e9-xray.json', function(data){s1e9 = Object.assign({}, {'seasonNum': 1, 'episodeNum': 9}, data);}),
-  $.getJSON('../data/man-in-the-high-castle-s1-e10-xray.json', function(data){s1e10 = Object.assign({}, {'seasonNum': 1, 'episodeNum': 10}, data);}),
-  $.getJSON('../data/man-in-the-high-castle-s2-e1-xray.json', function(data){s2e1 = Object.assign({}, {'seasonNum': 2, 'episodeNum': 1}, data);}),
-  $.getJSON('../data/man-in-the-high-castle-s2-e2-xray.json', function(data){s2e2 = Object.assign({}, {'seasonNum': 2, 'episodeNum': 2}, data);}),
-  $.getJSON('../data/man-in-the-high-castle-s2-e3-xray.json', function(data){s2e3 = Object.assign({}, {'seasonNum': 2, 'episodeNum': 3}, data);}),
-  $.getJSON('../data/man-in-the-high-castle-s2-e4-xray.json', function(data){s2e4 = Object.assign({}, {'seasonNum': 2, 'episodeNum': 4}, data);}),
-  $.getJSON('../data/man-in-the-high-castle-s2-e5-xray.json', function(data){s2e5 = Object.assign({}, {'seasonNum': 2, 'episodeNum': 5}, data);}),
-  $.getJSON('../data/man-in-the-high-castle-s2-e6-xray.json', function(data){s2e6 = Object.assign({}, {'seasonNum': 2, 'episodeNum': 6}, data);}),
-  $.getJSON('../data/man-in-the-high-castle-s2-e7-xray.json', function(data){s2e7 = Object.assign({}, {'seasonNum': 2, 'episodeNum': 7}, data);}),
-  $.getJSON('../data/man-in-the-high-castle-s2-e8-xray.json', function(data){s2e8 = Object.assign({}, {'seasonNum': 2, 'episodeNum': 8}, data);}),
-  $.getJSON('../data/man-in-the-high-castle-s2-e9-xray.json', function(data){s2e9 = Object.assign({}, {'seasonNum': 2, 'episodeNum': 9}, data);}),
-  $.getJSON('../data/man-in-the-high-castle-s2-e10-xray.json', function(data){s2e10 = Object.assign({}, {'seasonNum': 2, 'episodeNum': 10}, data);}),
-  $.getJSON('../data/man-in-the-high-castle-s3-e1-xray.json', function(data){s3e1 = Object.assign({}, {'seasonNum': 3, 'episodeNum': 1}, data);}),
-  $.getJSON('../data/man-in-the-high-castle-s3-e2-xray.json', function(data){s3e2 = Object.assign({}, {'seasonNum': 3, 'episodeNum': 2}, data);}),
-  $.getJSON('../data/man-in-the-high-castle-s3-e3-xray.json', function(data){s3e3 = Object.assign({}, {'seasonNum': 3, 'episodeNum': 3}, data);}),
-  $.getJSON('../data/man-in-the-high-castle-s3-e4-xray.json', function(data){s3e4 = Object.assign({}, {'seasonNum': 3, 'episodeNum': 4}, data);}),
-  $.getJSON('../data/man-in-the-high-castle-s3-e5-xray.json', function(data){s3e5 = Object.assign({}, {'seasonNum': 3, 'episodeNum': 5}, data);}),
-  $.getJSON('../data/man-in-the-high-castle-s3-e6-xray.json', function(data){s3e6 = Object.assign({}, {'seasonNum': 3, 'episodeNum': 6}, data);}),
-  $.getJSON('../data/man-in-the-high-castle-s3-e7-xray.json', function(data){s3e7 = Object.assign({}, {'seasonNum': 3, 'episodeNum': 7}, data);}),
-  $.getJSON('../data/man-in-the-high-castle-s3-e8-xray.json', function(data){s3e8 = Object.assign({}, {'seasonNum': 3, 'episodeNum': 8}, data);}),
-  $.getJSON('../data/man-in-the-high-castle-s3-e9-xray.json', function(data){s3e9 = Object.assign({}, {'seasonNum': 3, 'episodeNum': 9}, data);}),
-  $.getJSON('../data/man-in-the-high-castle-s3-e10-xray.json', function(data){s3e10 = Object.assign({}, {'seasonNum': 3, 'episodeNum': 10}, data);}),
-  $.getJSON("../data/synonyms.json", function(data) {
-    synonyms = data;
-    for(var i in synonyms){
-      for(j=0; j<synonyms[i].aliases.length; j++){
-        synonyms[synonyms[i].aliases[j]] = {};
-        synonyms[synonyms[i].aliases[j]].accepted = synonyms[i].accepted; 
-      }
-    }
-    console.log("synonyms.json loaded");
-  }),
-  $.getJSON("../data/config.json", function(data) {
-    config = data.config;
-    console.log("config.json loaded");
-  })
-  .fail(function() {console.error("config.json not loaded");})
-).then(function() {
+d3.queue()
+  .defer(d3.json, '../data/synonyms.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s1-e1-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s1-e2-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s1-e3-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s1-e4-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s1-e5-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s1-e6-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s1-e7-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s1-e8-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s1-e9-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s1-e10-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s2-e1-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s2-e2-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s2-e3-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s2-e4-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s2-e5-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s2-e6-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s2-e7-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s2-e8-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s2-e9-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s2-e10-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s3-e1-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s3-e2-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s3-e3-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s3-e4-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s3-e5-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s3-e6-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s3-e7-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s3-e8-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s3-e9-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s3-e10-xray.json')
+  .await(ready);
+
+function ready(error, synonyms, s1e1, s1e2, s1e3, s1e4, s1e5, s1e6, s1e7, s1e8, s1e9, s1e10, s2e1, s2e2, s2e3, s2e4, s2e5, s2e6, s2e7, s2e8, s2e9, s2e10, s3e1, s3e2, s3e3, s3e4, s3e5, s3e6, s3e7, s3e8, s3e9, s3e10) {
+  if (error) throw error;
+  console.log("now that the files are loaded... do magic.");
+
+  s1e1 = {...s1e1, 'seasonNum': 1, 'episodeNum': 1};
+  s1e2 = {...s1e2, 'seasonNum': 1, 'episodeNum': 2};
+  s1e3 = {...s1e3, 'seasonNum': 1, 'episodeNum': 3};
+  s1e4 = {...s1e4, 'seasonNum': 1, 'episodeNum': 4};
+  s1e5 = {...s1e5, 'seasonNum': 1, 'episodeNum': 5};
+  s1e6 = {...s1e6, 'seasonNum': 1, 'episodeNum': 6};
+  s1e7 = {...s1e7, 'seasonNum': 1, 'episodeNum': 7};
+  s1e8 = {...s1e8, 'seasonNum': 1, 'episodeNum': 8};
+  s1e9 = {...s1e9, 'seasonNum': 1, 'episodeNum': 9};
+  s1e10 = {...s1e10, 'seasonNum': 1, 'episodeNum': 10};
+  s2e1 = {...s2e1, 'seasonNum': 2, 'episodeNum': 1};
+  s2e2 = {...s2e2, 'seasonNum': 2, 'episodeNum': 2};
+  s2e3 = {...s2e3, 'seasonNum': 2, 'episodeNum': 3};
+  s2e4 = {...s2e4, 'seasonNum': 2, 'episodeNum': 4};
+  s2e5 = {...s2e5, 'seasonNum': 2, 'episodeNum': 5};
+  s2e6 = {...s2e6, 'seasonNum': 2, 'episodeNum': 6};
+  s2e7 = {...s2e7, 'seasonNum': 2, 'episodeNum': 7};
+  s2e8 = {...s2e8, 'seasonNum': 2, 'episodeNum': 8};
+  s2e9 = {...s2e9, 'seasonNum': 2, 'episodeNum': 9};
+  s2e10 = {...s2e10, 'seasonNum': 2, 'episodeNum': 10};
+  s3e1 = {...s3e1, 'seasonNum': 3, 'episodeNum': 1};
+  s3e2 = {...s3e2, 'seasonNum': 3, 'episodeNum': 2};
+  s3e3 = {...s3e3, 'seasonNum': 3, 'episodeNum': 3};
+  s3e4 = {...s3e4, 'seasonNum': 3, 'episodeNum': 4};
+  s3e5 = {...s3e5, 'seasonNum': 3, 'episodeNum': 5};
+  s3e6 = {...s3e6, 'seasonNum': 3, 'episodeNum': 6};
+  s3e7 = {...s3e7, 'seasonNum': 3, 'episodeNum': 7};
+  s3e8 = {...s3e8, 'seasonNum': 3, 'episodeNum': 8};
+  s3e9 = {...s3e9, 'seasonNum': 3, 'episodeNum': 9};
+  s3e10 = {...s3e10, 'seasonNum': 3, 'episodeNum': 10};
+
   // massage the data
-  episodes = [s1e1, s1e2, s1e3, s1e4, s1e5, s1e6, s1e7, s1e8, s1e9, s1e10, s2e1, s2e2, s2e3, s2e4, s2e5, s2e6, s2e7, s2e8, s2e9, s2e10, s3e1, s3e2, s3e3, s3e4, s3e5, s3e6, s3e7, s3e8, s3e9, s3e10];
+  var episodes = [s1e1, s1e2, s1e3, s1e4, s1e5, s1e6, s1e7, s1e8, s1e9, s1e10, s2e1, s2e2, s2e3, s2e4, s2e5, s2e6, s2e7, s2e8, s2e9, s2e10, s3e1, s3e2, s3e3, s3e4, s3e5, s3e6, s3e7, s3e8, s3e9, s3e10];
+  
+  for(var i in synonyms){
+    for(j=0; j<synonyms[i].aliases.length; j++){
+      synonyms[synonyms[i].aliases[j]] = {};
+      synonyms[synonyms[i].aliases[j]].accepted = synonyms[i].accepted; 
+    }
+  }
+
   episodes.forEach(function(item, i){
     // add all x-ray items from episode
     var items = item.page.sections.left.widgets.widgetList[0].widgets.widgetList[1].items; // a list of all characters, soundtrack, trivia, etc.
@@ -205,11 +229,13 @@ $.when(
     }
     item.scenes = sceneData;
   })
-}).then(function() {
+
   console.log("now that the files are loaded... do magic.");
 
   /* CONFIG SETUP */
-  $("svg").attr({width: config.characterMatrix.svg.width, height: config.characterMatrix.svg.height});
+  d3.select("svg")
+    .attr("width", config.width)
+    .attr("height", config.height)
   /* END CONFIG SETUP */
 
   var allCharacters = []; // array for all characters
@@ -273,21 +299,22 @@ $.when(
   }
 
   // build the visualization
-  var width, height;
-    
-  width = config.characterMatrix.svg.width;
-  height = config.characterMatrix.svg.height;
+  var width = config.width,
+    height = config.height,
+    margin = config.margin;
 
   var x = d3.scale.ordinal().rangeBands([0, width]),
     z = d3.scale.linear().domain([0, 4]).clamp(true),
     c = d3.scale.category10().domain(d3.range(10));
 
 var svg = d3.select("svg")
-    .attr("width", width + config.characterMatrix.svg.margin.left + config.characterMatrix.svg.margin.right)
-    .attr("height", height + config.characterMatrix.svg.margin.top + config.characterMatrix.svg.margin.bottom)
-    .style("margin-left", -config.characterMatrix.svg.margin.left + "px")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .style("margin-left", -margin.left + "px")
   .append("g")
-    .attr("transform", "translate(" + config.characterMatrix.svg.margin.left + "," + config.characterMatrix.svg.margin.top + ")");
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+  svg.attr("height", height);
 
   var nodes = matrixObject.nodes,
     n = matrixObject.nodes.length;
@@ -396,10 +423,10 @@ var svg = d3.select("svg")
 
   var timeout = setTimeout(function() {
     order("count");
-    d3.select("#order").property("selectedIndex", 1).node().focus();
+    d3.select("#order").property("selectedIndex", 1);
   }, 5000);
 
-});
+};
 
     </script>
   </body>
