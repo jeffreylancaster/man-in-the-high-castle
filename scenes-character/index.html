@@ -132,193 +132,178 @@ function ready(error, synonyms, s1e1, s1e2, s1e3, s1e4, s1e5, s1e6, s1e7, s1e8, 
 
   // massage the data
   var episodes = [s1e1, s1e2, s1e3, s1e4, s1e5, s1e6, s1e7, s1e8, s1e9, s1e10, s2e1, s2e2, s2e3, s2e4, s2e5, s2e6, s2e7, s2e8, s2e9, s2e10, s3e1, s3e2, s3e3, s3e4, s3e5, s3e6, s3e7, s3e8, s3e9, s3e10];
-  episodes.forEach(function(item, i){
-    // 1 if season 1, 2; 2 if season 3
-    var swap = item.page.sections.center.widgets.widgetList.length % 4;
+
+  // types of scenes to exclude
+  var exclude = ["Amazon Original", "Studio Logo", "Opening Credits", "End Credits"];
+
+  // rebuild synonyms
+  for(var i in synonyms){
+    synonyms[i].aliases.forEach(function(val, ind){
+      synonyms[val] = {};
+      synonyms[val].accepted = synonyms[i].accepted;
+    })
+  }
+
+  episodes.forEach(function(val, ind){
+    // add all x-ray items from episode
+    val.items = val.page.sections.left.widgets.widgetList[0].widgets.widgetList[1].items;
+    
+    // season 1, 2 - widgetList
+      // [0]: cast (tabType: "castTab")
+      // [1]: scenes and time ranges (tabType: "scenesTab")
+      // [2]: characters (tabType: "characterTab")
+      // [3]: music list (tabType: "musicTab")
+      // [4]: trivia (tabType: "triviaTab")
+    // season 3 - widgetList
+      // [0]: photos and videos gallery (tabType: "galleryTab")
+      // [1]: cast (tabType: "castTab")
+      // [2]: scenes and time ranges (tabType: "scenesTab")
+      // [3]: characters (tabType: "characterTab")
+      // [4]: music list (tabType: "musicTab")
+      // [5]: trivia (tabType: "triviaTab")
+    
+    // find the widget with scenes and time ranges
+    var scenesTab = val.page.sections.center.widgets.widgetList.findIndex(function(v){
+      return v.tabType == "scenesTab"
+    });
 
     var sceneData = [];
-    for(k=0; k<item.page.sections.center.widgets.widgetList[swap].widgets.widgetList[0].items.itemList.length; k++){
-      var textMap = item.page.sections.center.widgets.widgetList[swap].widgets.widgetList[0].items.itemList[k].textMap;
-      var trickPlayTimeRange = item.page.sections.center.widgets.widgetList[swap].widgets.widgetList[0].items.itemList[k].trickPlayTimeRange;
-      var partitionedChangeList = item.page.sections.left.widgets.widgetList[0].widgets.widgetList[1].partitionedChangeList;
+    val.page.sections.center.widgets.widgetList[scenesTab].widgets.widgetList[0].items.itemList.forEach(function(v, i){
+      var textMap = v.textMap;
+      var trickPlayTimeRange = v.trickPlayTimeRange;
+      var partitionedChangeList = val.page.sections.left.widgets.widgetList[0].widgets.widgetList[1].partitionedChangeList;
 
       // act on partitionedChangeList to build scenes.characters[]
       var characters = [];
-      
-      // add initial items from initialItemIds
-      partitionedChangeList[k].initialItemIds.forEach(function(val, l){
-        if(val.split("/")[1] === "name"){
-          var name = val.split("/")[val.split("/").length - 1];
+      partitionedChangeList[i].initialItemIds.forEach(function(value, index){
+        if(value.split("/")[1] === "name"){
+          var name = value.split("/")[value.split("/").length - 1];
 
           // use synonyms file to replace name
-          for(var i in synonyms){
-            synonyms[i].aliases.forEach(function(alias, index){
-              if(alias === name){
-                name = synonyms[i].accepted;
-              }
-            });
-          }
+          name = (synonyms.hasOwnProperty(name)) ? synonyms[name].accepted : name;
 
           characters.push({
             'name': name,
-            'start': partitionedChangeList[k].timeRange.startTime,
-            'end': partitionedChangeList[k].timeRange.endTime
+            'start': partitionedChangeList[i].timeRange.startTime,
+            'end': partitionedChangeList[i].timeRange.endTime
           });
         }
-      });
-
-      // add changes from changesCollection
-      partitionedChangeList[k].changesCollection.forEach(function(val, l){
-        if(val.itemId.split("/")[1] === "name" && val.changeType === "AddItem" && val.itemId.split("/")[val.itemId.split("/").length-2] !== "trivia"){
-          var name = val.itemId.split("/")[val.itemId.split("/").length - 1];
+      })
+      partitionedChangeList[i].changesCollection.forEach(function(value, index){
+        if(value.itemId.split("/")[1] === "name" && value.changeType === "AddItem" && value.itemId.split("/")[value.itemId.split("/").length-2] !== "trivia"){
+          var name = value.itemId.split("/")[value.itemId.split("/").length - 1];
 
           // use synonyms file to replace name
-          for(var i in synonyms){
-            synonyms[i].aliases.forEach(function(alias, index){
-              if(alias === name){
-                name = synonyms[i].accepted;
-              }
-            });
-          }
+          name = (synonyms.hasOwnProperty(name)) ? synonyms[name].accepted : name;
 
           characters.push({
             'name': name,
-            'start': val.timePosition,
-            'end': partitionedChangeList[k].timeRange.endTime
+            'start': value.timePosition,
+            'end': partitionedChangeList[i].timeRange.endTime
           });
         }
-      });
-      
+      })
+
       // keeping startTime, endTime, and range to ensure match from different sources
       sceneData.push({
         'primary': textMap.PRIMARY,
         'tertiary': textMap.TERTIARY,
         'sceneStart': trickPlayTimeRange.startTime,
         'sceneEnd': trickPlayTimeRange.endTime,
-        'changes': partitionedChangeList[k].changesCollection,
-        'initialIds': partitionedChangeList[k].initialItemIds,
-        'range': partitionedChangeList[k].timeRange,
-        'characters': characters
-      });
-    }
+        'changes': partitionedChangeList[i].changesCollection,
+        'initialIds': partitionedChangeList[i].initialItemIds,
+        'range': partitionedChangeList[i].timeRange,
+        'characters': characters,
+        'seasonNum': val.seasonNum,
+        'episodeNum': val.episodeNum,
+        'caption': textMap.PRIMARY.split(".").slice(1,).join(".").trim()
+      })
+    })
 
-    item.scenes = sceneData;
+    val.scenes = sceneData;
   })
 
-  console.log(episodes);
-  
-  console.log("now that the data is ready... do magic.");
+  // aggregate all scenes into a single array
+  var scenes = episodes.reduce(function(acc, val, ind){
+    return [...acc, ...val.scenes]
+  }, [])
 
+  var end = 0,
+    totalTime = 0;
+
+  // add length, absStart and absEnd of each scene
+  scenes.forEach(function(val, ind){
+    if(exclude.indexOf(val.primary.split(".")[1].trim()) > -1){
+      // skip
+    } else {
+      // calculate the length of the scene
+      var sceneLength = Math.abs(val.sceneEnd - val.sceneStart);
+      val.sceneLength = sceneLength;
+      // append absolute value of scene start in milliseconds
+      val.absStartmSec = totalTime;
+      // append absolute value of scene end in milliseconds
+      val.absEndmSec = totalTime + sceneLength;
+      // store the last absEndSec as end
+      end = val.absEndmSec;
+      // add scene length to total time
+      totalTime += sceneLength;
+    }
+  })
+
+  // put all seasons in an array
+  var seasons = scenes.reduce(function(acc, val, ind){
+    return [...acc, val.seasonNum];
+  }, [])
+    .filter(onlyUnique);
+
+  // then put that array into an object with 0 count
+  var seasonsObj = seasons.reduce(function(acc, val, ind){
+    var obj = {};
+    obj[val] = 0;
+    return Object.assign(acc, obj);
+  }, {});
+
+  // put all characters in one array, make object to count character time
+  var characters = scenes.reduce(function(acc, val, ind){
+    var c = val.characters.reduce(function(a, v, i){
+      return a.concat(v.name);
+    }, []);
+    return [...acc, ...c];
+  }, [])
+    .filter(onlyUnique)
+    .map(function(cur, ind){
+      return {"name": cur, "scenes":[], "total":0}
+    });
+
+  // go through scenes and add sceneLength values to characters' counts
+  scenes.forEach(function(val, ind){
+    val.characters.forEach(function(v, i){
+      var index = characters.findIndex(function(element){
+        return element.name == v.name;
+      });
+      characters[index].scenes.push({
+        "absStartmSec":val.absStartmSec,
+        "absEndmSec":val.absEndmSec,
+        "season":val.seasonNum,
+        "caption":val.caption
+      });
+      characters[index].total += val.absEndmSec - val.absStartmSec;
+    })
+  })
+
+  // sort the characters by total time
+  characters.sort(function(a, b){
+    return b.total - a.total;
+  })
+
+  // build the visualization
   /* CONFIG SETUP */
   d3.select("svg")
     .attr("width", config.width)
     .attr("height", config.height)
   /* END CONFIG SETUP */
 
-  var allCharacters = []; // array for all characters
-  var uniqueCharacters = []; // array for uniqueCharacters
-  var totalTime = 0;
-  var charactersArray = [];
-  var seasons = [];
-  var end = 0;
-  var exclude = ["Amazon Original", "Studio Logo", "Opening Credits", "End Credits"];
-  var episodesData = episodes;
-        
-  for (var i in episodesData) {
-    // act on scenes
-    var scenes = episodesData[i].scenes;
-    for (var j in scenes){
-      // calculate length of scene in seconds
-      var sceneLength = Math.abs(scenes[j].sceneEnd - scenes[j].sceneStart);
-
-      if(exclude.indexOf(scenes[j].primary.split(".")[1].trim()) > -1){
-        // skip
-
-      } else {
-        // append absolute value of scene start in milliseconds
-        scenes[j].absStartmSec = totalTime;
-        // append absolute value of scene end in milliseconds
-        scenes[j].absEndmSec = totalTime + sceneLength;
-        // store the last absEndSec as end
-        end = scenes[j].absEndmSec;
-        // add scene length to total time
-        totalTime += sceneLength;
-      }
-
-      // add characters in scene to allCharacters array
-      for (var k in scenes[j].characters){
-        if(scenes[j].characters[k].name.length > 0){
-          allCharacters.push(scenes[j].characters[k].name);
-        }
-      }
-    }
-  }
-
-  // deduplicate the list of characters from scenes
-  uniqueCharacters = allCharacters.filter(onlyUnique).sort();
-
-  // modify uniqueCharacters
-  var uniqueCharactersObject = {};
-  for(i=0; i<uniqueCharacters.length; i++){
-    uniqueCharactersObject[uniqueCharacters[i]] = {
-      "name": uniqueCharacters[i],
-      "scenes": [],
-      "total": 0
-    }
-  }
-
-  // sum scene lengths for characters in scenes
-  for(var i in episodesData){
-    if(episodesData[i].scenes){
-      for(var j in episodesData[i].scenes){
-        if(episodesData[i].scenes[j].characters.length > 0 && episodesData[i].scenes[j].absStartmSec){
-          for(var k in episodesData[i].scenes[j].characters){
-            //var location = (episodesData[i].scenes[j].subLocation) ? episodesData[i].scenes[j].location + " - " + episodesData[i].scenes[j].subLocation : episodesData[i].scenes[j].location
-            
-            if(episodesData[i].scenes[j].characters[k].name !== ""){
-              uniqueCharactersObject[episodesData[i].scenes[j].characters[k].name].scenes.push({
-                "absStartmSec":episodesData[i].scenes[j].absStartmSec,
-                "absEndmSec":episodesData[i].scenes[j].absEndmSec,
-                "season":episodesData[i].seasonNum,
-                "caption":episodesData[i].scenes[j].primary.split(".").slice(1,).join(".")
-                //,"location":location
-              });
-              uniqueCharactersObject[episodesData[i].scenes[j].characters[k].name].total += episodesData[i].scenes[j].absEndmSec - episodesData[i].scenes[j].absStartmSec;
-            }
-          }
-        }
-      }
-    }
-    if(episodesData[i].scenes.length > 0){
-      seasons.push(episodesData[i].seasonNum);
-    }
-  }
-
-  seasons = seasons.filter(onlyUnique).sort();
-
-  // calculate midpoint of start/end values
-  for(var i in uniqueCharactersObject){
-    var mid = 0;
-    for(j=0; j<uniqueCharactersObject[i].scenes.length; j++){
-      mid += uniqueCharactersObject[i].scenes[j].absStartmSec;
-      mid += uniqueCharactersObject[i].scenes[j].absEndmSec
-    }
-    mid = mid/(2 * uniqueCharactersObject[i].scenes.length);
-    uniqueCharactersObject[i].mid = Math.round(mid);
-  }
-
-  for(var i in uniqueCharactersObject){
-    charactersArray.push(uniqueCharactersObject[i]);
-  }
-
-  charactersArray.sort(function(a, b) { return a.total - b.total; }).reverse();
-
-
-  console.log(charactersArray);
-  
-
-  // build the visualization
-  var data = charactersArray;
+  var data = characters;
   var barHeight = config.barHeight;
 
   var svg = d3.select("svg"),
@@ -345,19 +330,24 @@ function ready(error, synonyms, s1e1, s1e2, s1e3, s1e4, s1e5, s1e6, s1e7, s1e8, 
   x.domain([0, end]).nice();
   // z.domain(["1", "2"]);
 
-  for(i=0; i<data.length; i++){
-    g.append("g")
-    .selectAll("g")
-    .data(data[i].scenes)
+  var row = g.selectAll(".row")
+    .data(data)
+    .enter()
+    .append("g")
+      .attr("class", "row")
+      .attr("transform", function(d){return "translate(0,"+y(d.name)+")"})
+      
+  var rects = row.selectAll("rect")
+    .data(function(d){
+      return d.scenes;
+    })
     .enter().append("rect")
-      .attr("y", function(d){return y(data[i].name)})
       .attr("x", function(d){return x(d.absStartmSec)})
       .attr("width", function(d){return x(d.absEndmSec) - x(d.absStartmSec)})
       .attr("height", y.bandwidth())
       .attr("fill", function(d){return z(d.season)})
       .append("svg:title")
         .text(function(d) {return d.caption});
-  }
 
   g.append("g")
     .attr("class", "axis")
