@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html>
+	<head>
+    <title>Man in the High Castle: Character Co-Occurrence</title>
+    <meta charset="UTF-8">
+    <meta name="description" content="Man in the High Castle: Character Co-Occurrence">
+    <meta name="author" content="Jeffrey Lancaster">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../style.css">
+  </head>
+	<style>
+		.group-tick line {
+			stroke: #000;
+		}
+		.label {
+			font: 10px sans-serif;
+		}
+		.ribbons {
+			fill-opacity: 0.6;
+		}
+	</style>
+<body>
+	<svg></svg>
+</body>
+<script src="https://d3js.org/d3.v4.min.js" charset="utf-8"></script>
+<script>
+/* HELPFUL FUNCTIONS */
+
+// to convert scene start/end times into seconds
+function sec(timeString){
+  var sec = 0;
+  if (timeString.length == 0) return sec;
+  var splitArray = timeString.split(":");
+  sec = 3600*parseFloat(splitArray[0])+60*parseFloat(splitArray[1])+parseFloat(splitArray[2]);
+  return sec;
+}
+
+// to convert milliseconds into hh:mm:ss
+function millisecondsToHMS(d) {
+  var date = new Date(null);
+  date.setMilliseconds(d); // specify value for MILLISECONDS here
+  return date.toISOString().substr(11, 8);
+}
+
+// to convert seconds into hh:mm:ss
+function secondsToHMS(d) {
+  var date = new Date(null);
+  date.setSeconds(d); // specify value for SECONDS here
+  return date.toISOString().substr(11, 8);
+}
+
+// to dedpulicate an array
+function onlyUnique(value, index, self) { 
+  return self.indexOf(value) === index;
+}
+
+/* IMPORT DATA */
+d3.queue()
+  .defer(d3.json, '../data/synonyms.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s1-e1-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s1-e2-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s1-e3-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s1-e4-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s1-e5-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s1-e6-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s1-e7-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s1-e8-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s1-e9-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s1-e10-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s2-e1-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s2-e2-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s2-e3-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s2-e4-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s2-e5-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s2-e6-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s2-e7-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s2-e8-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s2-e9-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s2-e10-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s3-e1-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s3-e2-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s3-e3-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s3-e4-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s3-e5-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s3-e6-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s3-e7-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s3-e8-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s3-e9-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s3-e10-xray.json')
+  .await(ready);
+
+function ready(error, synonyms, s1e1, s1e2, s1e3, s1e4, s1e5, s1e6, s1e7, s1e8, s1e9, s1e10, s2e1, s2e2, s2e3, s2e4, s2e5, s2e6, s2e7, s2e8, s2e9, s2e10, s3e1, s3e2, s3e3, s3e4, s3e5, s3e6, s3e7, s3e8, s3e9, s3e10) {
+  if (error) throw error;
+  console.log("now that the files are loaded... do magic.");
+
+  s1e1 = {...s1e1, 'seasonNum': 1, 'episodeNum': 1};
+  s1e2 = {...s1e2, 'seasonNum': 1, 'episodeNum': 2};
+  s1e3 = {...s1e3, 'seasonNum': 1, 'episodeNum': 3};
+  s1e4 = {...s1e4, 'seasonNum': 1, 'episodeNum': 4};
+  s1e5 = {...s1e5, 'seasonNum': 1, 'episodeNum': 5};
+  s1e6 = {...s1e6, 'seasonNum': 1, 'episodeNum': 6};
+  s1e7 = {...s1e7, 'seasonNum': 1, 'episodeNum': 7};
+  s1e8 = {...s1e8, 'seasonNum': 1, 'episodeNum': 8};
+  s1e9 = {...s1e9, 'seasonNum': 1, 'episodeNum': 9};
+  s1e10 = {...s1e10, 'seasonNum': 1, 'episodeNum': 10};
+  s2e1 = {...s2e1, 'seasonNum': 2, 'episodeNum': 1};
+  s2e2 = {...s2e2, 'seasonNum': 2, 'episodeNum': 2};
+  s2e3 = {...s2e3, 'seasonNum': 2, 'episodeNum': 3};
+  s2e4 = {...s2e4, 'seasonNum': 2, 'episodeNum': 4};
+  s2e5 = {...s2e5, 'seasonNum': 2, 'episodeNum': 5};
+  s2e6 = {...s2e6, 'seasonNum': 2, 'episodeNum': 6};
+  s2e7 = {...s2e7, 'seasonNum': 2, 'episodeNum': 7};
+  s2e8 = {...s2e8, 'seasonNum': 2, 'episodeNum': 8};
+  s2e9 = {...s2e9, 'seasonNum': 2, 'episodeNum': 9};
+  s2e10 = {...s2e10, 'seasonNum': 2, 'episodeNum': 10};
+  s3e1 = {...s3e1, 'seasonNum': 3, 'episodeNum': 1};
+  s3e2 = {...s3e2, 'seasonNum': 3, 'episodeNum': 2};
+  s3e3 = {...s3e3, 'seasonNum': 3, 'episodeNum': 3};
+  s3e4 = {...s3e4, 'seasonNum': 3, 'episodeNum': 4};
+  s3e5 = {...s3e5, 'seasonNum': 3, 'episodeNum': 5};
+  s3e6 = {...s3e6, 'seasonNum': 3, 'episodeNum': 6};
+  s3e7 = {...s3e7, 'seasonNum': 3, 'episodeNum': 7};
+  s3e8 = {...s3e8, 'seasonNum': 3, 'episodeNum': 8};
+  s3e9 = {...s3e9, 'seasonNum': 3, 'episodeNum': 9};
+  s3e10 = {...s3e10, 'seasonNum': 3, 'episodeNum': 10};
+
+  // massage the data
+  var episodes = [s1e1, s1e2, s1e3, s1e4, s1e5, s1e6, s1e7, s1e8, s1e9, s1e10, s2e1, s2e2, s2e3, s2e4, s2e5, s2e6, s2e7, s2e8, s2e9, s2e10, s3e1, s3e2, s3e3, s3e4, s3e5, s3e6, s3e7, s3e8, s3e9, s3e10];
+
+  // types of scenes to exclude
+  var exclude = ["Amazon Original", "Studio Logo", "Opening Credits", "End Credits"];
+
+  // rebuild synonyms
+  for(var i in synonyms){
+    synonyms[i].aliases.forEach(function(val, ind){
+      synonyms[val] = {};
+      synonyms[val].accepted = synonyms[i].accepted;
+    })
+  }
+
+  episodes.forEach(function(val, ind){
+    // add all x-ray items from episode
+    val.items = val.page.sections.left.widgets.widgetList[0].widgets.widgetList[1].items;
+    
+    // season 1, 2 - widgetList
+      // [0]: cast (tabType: "castTab")
+      // [1]: scenes and time ranges (tabType: "scenesTab")
+      // [2]: characters (tabType: "characterTab")
+      // [3]: music list (tabType: "musicTab")
+      // [4]: trivia (tabType: "triviaTab")
+    // season 3 - widgetList
+      // [0]: photos and videos gallery (tabType: "galleryTab")
+      // [1]: cast (tabType: "castTab")
+      // [2]: scenes and time ranges (tabType: "scenesTab")
+      // [3]: characters (tabType: "characterTab")
+      // [4]: music list (tabType: "musicTab")
+      // [5]: trivia (tabType: "triviaTab")
+    
+    // find the widget with scenes and time ranges
+    var scenesTab = val.page.sections.center.widgets.widgetList.findIndex(function(v){
+      return v.tabType == "scenesTab"
+    });
+
+    var sceneData = [];
+    val.page.sections.center.widgets.widgetList[scenesTab].widgets.widgetList[0].items.itemList.forEach(function(v, i){
+      var textMap = v.textMap;
+      var trickPlayTimeRange = v.trickPlayTimeRange;
+      var partitionedChangeList = val.page.sections.left.widgets.widgetList[0].widgets.widgetList[1].partitionedChangeList;
+
+      // act on partitionedChangeList to build scenes.characters[]
+      var characters = [];
+      partitionedChangeList[i].initialItemIds.forEach(function(value, index){
+        if(value.split("/")[1] === "name"){
+          var name = value.split("/")[value.split("/").length - 1];
+
+          // use synonyms file to replace name
+          name = (synonyms.hasOwnProperty(name)) ? synonyms[name].accepted : name;
+
+          characters.push({
+            'name': name,
+            'start': partitionedChangeList[i].timeRange.startTime,
+            'end': partitionedChangeList[i].timeRange.endTime
+          });
+        }
+      })
+      partitionedChangeList[i].changesCollection.forEach(function(value, index){
+        if(value.itemId.split("/")[1] === "name" && value.changeType === "AddItem" && value.itemId.split("/")[value.itemId.split("/").length-2] !== "trivia"){
+          var name = value.itemId.split("/")[value.itemId.split("/").length - 1];
+
+          // use synonyms file to replace name
+          name = (synonyms.hasOwnProperty(name)) ? synonyms[name].accepted : name;
+
+          characters.push({
+            'name': name,
+            'start': value.timePosition,
+            'end': partitionedChangeList[i].timeRange.endTime
+          });
+        }
+      })
+
+      // keeping startTime, endTime, and range to ensure match from different sources
+      sceneData.push({
+        'primary': textMap.PRIMARY,
+        'tertiary': textMap.TERTIARY,
+        'sceneStart': trickPlayTimeRange.startTime,
+        'sceneEnd': trickPlayTimeRange.endTime,
+        'changes': partitionedChangeList[i].changesCollection,
+        'initialIds': partitionedChangeList[i].initialItemIds,
+        'range': partitionedChangeList[i].timeRange,
+        'characters': characters.sort((a,b) => (a.name > b.name) ? 1 : ((b.name > a.name) ? -1 : 0)),
+        'seasonNum': val.seasonNum,
+        'episodeNum': val.episodeNum,
+        'caption': textMap.PRIMARY.split(".").slice(1,).join(".").trim()
+      })
+    })
+
+    val.scenes = sceneData;
+  })
+
+  // aggregate all scenes into a single array
+  var scenes = episodes.reduce(function(acc, val, ind){
+    return [...acc, ...val.scenes]
+  }, [])
+
+  var end = 0,
+    totalTime = 0;
+
+  // add length, absStart and absEnd of each scene
+  scenes.forEach(function(val, ind){
+    if(exclude.indexOf(val.primary.split(".")[1].trim()) > -1){
+      // skip
+    } else {
+      // calculate the length of the scene
+      var sceneLength = Math.abs(val.sceneEnd - val.sceneStart);
+      val.sceneLength = sceneLength;
+      // append absolute value of scene start in milliseconds
+      val.absStartmSec = totalTime;
+      // append absolute value of scene end in milliseconds
+      val.absEndmSec = totalTime + sceneLength;
+      // store the last absEndSec as end
+      end = val.absEndmSec;
+      // add scene length to total time
+      totalTime += sceneLength;
+    }
+  })
+
+  // put all characters in one array, make object to count character time
+  var characters = scenes.reduce(function(acc, val, ind){
+    var c = val.characters.reduce(function(a, v, i){
+      return a.concat(v.name);
+    }, []);
+    return [...acc, ...c];
+  }, [])
+    .filter(onlyUnique)
+    .sort();
+
+  // assemble the matrix of values
+  var matrix = [];
+	characters.forEach(function(node, i) {
+ 		matrix[i] = d3.range(characters.length).map(function(j) { return 0});
+	});
+
+	console.log(scenes, characters, matrix);
+
+	// populate the matrix with times
+	scenes.forEach(function(val, ind){
+		val.characters.forEach(function(v, i){
+			var index = characters.indexOf(v.name);
+			val.characters.forEach(function(w, j){
+				var indexj = characters.indexOf(w.name);
+				if(v !== w){
+					matrix[index][indexj] += val.absEndmSec - val.absStartmSec;
+				}
+			})
+		})
+	})
+
+	// based on https://jsfiddle.net/kLe38tff/
+
+	var config = {
+		"width": 1200,
+		"height": 1200,
+		"border": 30,
+		"color": "#BBB",
+		"margin": 150
+	}
+
+	var svg = d3.select("svg"),
+		width = config.width,
+		height = config.height,
+		outerRadius = Math.min(width, height) * 0.5 - config.margin,
+		innerRadius = outerRadius - config.border;
+
+	svg
+		.attr("width", width)
+		.attr("height", height)
+
+	// initialize chord diagram
+	var chord = d3.chord()
+		.padAngle(0.000)
+		.sortSubgroups(d3.descending);
+
+	// arc radii
+	var arc = d3.arc()
+		.innerRadius(innerRadius)
+		.outerRadius(outerRadius);
+
+	// ribbbons
+	var ribbon = d3.ribbon()
+		.radius(innerRadius);
+
+	var color = d3.scaleOrdinal(d3.schemeCategory20c);
+
+	var g = svg.append("g")
+		.attr("transform", `translate(${width / 2},${height / 2})`)
+		.datum(chord(matrix));
+
+	var group = g.append("g")
+		.attr("class", "groups")
+		.selectAll("g")
+			.data(function(chords) { return chords.groups; })
+			.enter().append("g")
+
+	group.append("path")
+		.style("fill", function(d) { return /*config.color*/ color(d.index); })
+		.style("stroke", function(d) { return d3.rgb(/*config.color*/ color(d.index)).darker(); })
+		.attr("d", arc)
+		.on("mouseover", fade(.1))
+		.on("mouseout", fade(1))
+
+	group.append("title")
+		.text(function(d){
+			return `${characters[d.index]}`;
+		});
+
+	// add labels to each group
+	group.append("text")
+		.attr("dy", ".35em") //width
+		.attr("class", "label")
+		.attr("transform", function(d,i) { //angle
+			d.angle = (d.startAngle + d.endAngle) / 2; //calculate the average of the start angle and the end angle
+			d.name = characters[i]; //assignment for the label
+			return `rotate(${d.angle * 180 / Math.PI}) translate(0, ${-(outerRadius + config.border/2 - 10)}) ${((d.angle < Math.PI) ? 'rotate(-90)' : 'rotate(90)')}`;
+				// + ((d.angle > Math.PI * 3 / 4 && d.angle < Math.PI * 5 / 4) ? "rotate(180)" : "");
+			}) //to spin when the angle between 135 to 225 degrees
+		.attr("text-anchor", function(d){
+			d.angle = (d.startAngle + d.endAngle) / 2;
+			return ((d.angle < Math.PI) ? "start" : "end");
+		})
+		.text(function(d) {
+			return d.name;
+		});
+
+	// draw the ribbons that go from group to group
+	var ribbons = g.append("g")
+		.attr("class", "ribbons")
+		.selectAll("path")
+		.data(function(chords) { return chords; })
+		.enter().append("path")
+			.attr("d", ribbon)
+			.style("fill", function(d) { return /*config.color*/ color(d.source.index); })
+			.style("stroke", function(d) { return d3.rgb(/*config.color*/ color(d.source.index)).darker(); });
+			
+	ribbons.append("title")
+		.text(function(d){
+			return `${characters[d.source.index]} and ${characters[d.target.index]} have been on-screen together for ${millisecondsToHMS(d.source.value)}.`;
+		});
+
+	function fade(opacity) {
+		return function(d, i) {
+			ribbons
+				.filter(function(d) {
+					return d.source.index != i && d.target.index != i;
+				})
+				.transition()
+					.style("opacity", opacity);
+		};
+	}
+}
+</script>
+</html>
