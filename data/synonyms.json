@@ -70,5 +70,24 @@
 		"aliases": [
 			"Anne Walker"
 		]
+	},
+	"Taishi Okamura": {
+		"accepted": "Taishi Okamura",
+		"aliases": [
+			"Taishi Okanura"
+		]
+	},
+	"Line-Faced Man": {
+		"accepted": "Line-Faced Man",
+		"aliases": [
+			"Lined-Faced Man"
+		]
+	},
+	"Harlan Wyndam-Matson": {
+		"accepted": "Harlan Wyndam-Matson",
+		"aliases": [
+			"Harlan Wyndam Matson"
+		]
 	}
+
 }
