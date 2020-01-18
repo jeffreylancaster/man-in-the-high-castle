@@ -94,9 +94,19 @@ d3.queue()
   .defer(d3.json, '../data/man-in-the-high-castle-s3-e8-xray.json')
   .defer(d3.json, '../data/man-in-the-high-castle-s3-e9-xray.json')
   .defer(d3.json, '../data/man-in-the-high-castle-s3-e10-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s4-e1-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s4-e2-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s4-e3-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s4-e4-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s4-e5-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s4-e6-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s4-e7-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s4-e8-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s4-e9-xray.json')
+  .defer(d3.json, '../data/man-in-the-high-castle-s4-e10-xray.json')
   .await(ready);
 
-function ready(error, synonyms, s1e1, s1e2, s1e3, s1e4, s1e5, s1e6, s1e7, s1e8, s1e9, s1e10, s2e1, s2e2, s2e3, s2e4, s2e5, s2e6, s2e7, s2e8, s2e9, s2e10, s3e1, s3e2, s3e3, s3e4, s3e5, s3e6, s3e7, s3e8, s3e9, s3e10) {
+function ready(error, synonyms, s1e1, s1e2, s1e3, s1e4, s1e5, s1e6, s1e7, s1e8, s1e9, s1e10, s2e1, s2e2, s2e3, s2e4, s2e5, s2e6, s2e7, s2e8, s2e9, s2e10, s3e1, s3e2, s3e3, s3e4, s3e5, s3e6, s3e7, s3e8, s3e9, s3e10, s4e1, s4e2, s4e3, s4e4, s4e5, s4e6, s4e7, s4e8, s4e9, s4e10) {
   if (error) throw error;
   console.log("now that the files are loaded... do magic.");
 
@@ -130,9 +140,19 @@ function ready(error, synonyms, s1e1, s1e2, s1e3, s1e4, s1e5, s1e6, s1e7, s1e8, 
   s3e8 = {...s3e8, 'seasonNum': 3, 'episodeNum': 8};
   s3e9 = {...s3e9, 'seasonNum': 3, 'episodeNum': 9};
   s3e10 = {...s3e10, 'seasonNum': 3, 'episodeNum': 10};
+  s4e1 = {...s4e1, 'seasonNum': 4, 'episodeNum': 1};
+  s4e2 = {...s4e2, 'seasonNum': 4, 'episodeNum': 2};
+  s4e3 = {...s4e3, 'seasonNum': 4, 'episodeNum': 3};
+  s4e4 = {...s4e4, 'seasonNum': 4, 'episodeNum': 4};
+  s4e5 = {...s4e5, 'seasonNum': 4, 'episodeNum': 5};
+  s4e6 = {...s4e6, 'seasonNum': 4, 'episodeNum': 6};
+  s4e7 = {...s4e7, 'seasonNum': 4, 'episodeNum': 7};
+  s4e8 = {...s4e8, 'seasonNum': 4, 'episodeNum': 8};
+  s4e9 = {...s4e9, 'seasonNum': 4, 'episodeNum': 9};
+  s4e10 = {...s4e10, 'seasonNum': 4, 'episodeNum': 10};
 
   // massage the data
-  var episodes = [s1e1, s1e2, s1e3, s1e4, s1e5, s1e6, s1e7, s1e8, s1e9, s1e10, s2e1, s2e2, s2e3, s2e4, s2e5, s2e6, s2e7, s2e8, s2e9, s2e10, s3e1, s3e2, s3e3, s3e4, s3e5, s3e6, s3e7, s3e8, s3e9, s3e10];
+  var episodes = [s1e1, s1e2, s1e3, s1e4, s1e5, s1e6, s1e7, s1e8, s1e9, s1e10, s2e1, s2e2, s2e3, s2e4, s2e5, s2e6, s2e7, s2e8, s2e9, s2e10, s3e1, s3e2, s3e3, s3e4, s3e5, s3e6, s3e7, s3e8, s3e9, s3e10, s4e1, s4e2, s4e3, s4e4, s4e5, s4e6, s4e7, s4e8, s4e9, s4e10];
 
   // rebuild synonyms
   for(var i in synonyms){
@@ -168,8 +188,11 @@ function ready(error, synonyms, s1e1, s1e2, s1e3, s1e4, s1e5, s1e6, s1e7, s1e8, 
     var sceneData = [];
     val.page.sections.center.widgets.widgetList[scenesTab].widgets.widgetList[0].items.itemList.forEach(function(v, i){
       var textMap = v.textMap;
-      var trickPlayTimeRange = v.trickPlayTimeRange;
+
       var partitionedChangeList = val.page.sections.left.widgets.widgetList[0].widgets.widgetList[1].partitionedChangeList;
+      
+      // if there's a trickPlayTimeRange, use it - otherwise, get the start and end from the timeRange of the partitionedChangeList
+      var trickPlayTimeRange = (v.trickPlayTimeRange) ? v.trickPlayTimeRange : partitionedChangeList[i].timeRange;
 
       // act on partitionedChangeList to build scenes.characters[]
       var characters = [];
